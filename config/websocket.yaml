@@ -1,0 +1,41 @@
+# WebSocket Configuration
+# Phase 4B - CLOB WebSocket Read-only
+
+websocket:
+  # Enable/disable WebSocket
+  enabled: true
+
+  # Official Polymarket CLOB WebSocket Market Channel URL
+  # Public market channel - no authentication required
+  url: "wss://ws-subscriptions-clob.polymarket.com/ws/market"
+
+  # Subscribe payload configuration
+  # Market channel uses asset_ids (token IDs), not condition IDs
+  subscribe:
+    operation: "subscribe"
+    # asset_ids will be populated dynamically
+
+  # Heartbeat - official recommendation: 10 seconds
+  ping_interval_seconds: 10
+  pong_timeout_seconds: 10
+
+  # Reconnection settings
+  max_reconnect_attempts: 5
+  reconnect_delay_seconds: 1
+  reconnect_backoff_multiplier: 2.0
+  max_reconnect_delay_seconds: 60
+
+  # Stale data detection
+  # If no update received within this threshold, mark as stale
+  stale_threshold_seconds: 60
+
+  # Rate limiting and subscription limits
+  # Note: max_subscriptions is per TOKEN, not per market
+  # Each market has 2 tokens (YES + NO)
+  max_subscriptions: 20  # Maximum tokens to subscribe
+  subscribe_batch_size: 5  # Subscribe in batches
+  subscribe_delay_ms: 100  # Delay between batches
+
+  # Timeouts
+  connect_timeout_seconds: 10
+  message_timeout_seconds: 30

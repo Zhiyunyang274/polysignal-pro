@@ -1,0 +1,24 @@
+# Application Configuration
+app:
+  name: "PolySignal Pro"
+  version: "0.1.0"
+  environment: "development"  # development, staging, production
+
+# Data mode
+data_mode: "mock"  # mock, live
+
+# Update intervals (seconds)
+update_intervals:
+  orderbook_refresh: 5
+  market_refresh: 60
+  health_check: 30
+
+# Paths
+paths:
+  database: "data/polysignal.db"
+  logs: "logs/polysignal.log"
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "json"  # json, text

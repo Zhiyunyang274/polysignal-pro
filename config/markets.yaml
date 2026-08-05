@@ -1,0 +1,29 @@
+# Market Configuration
+
+# Categories to monitor
+enabled_categories:
+  - crypto
+  - sports
+  - weather
+  - macro
+
+# Categories to exclude
+excluded_categories:
+  - politics
+  - war_geopolitics
+  - legal
+  - celebrity
+  - subjective
+
+# Market filters
+filters:
+  min_volume_usd: 100000
+  min_24h_volume_usd: 50000
+  max_spread_pct: 0.05
+  min_depth_usd: 20
+
+# Mock market settings (for testing)
+mock:
+  num_markets: 10
+  price_range: [0.1, 0.9]
+  volume_range_usd: [100000, 1000000]

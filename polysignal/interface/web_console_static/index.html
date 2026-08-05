@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0d1117" />
+    <title>PolySignal Research Console</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Primary navigation">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div>
+            <div class="brand-name">POLYSIGNAL</div>
+            <div class="brand-subtitle">RESEARCH CONSOLE</div>
+          </div>
+        </div>
+
+        <div class="mode-badge"><span class="status-dot green"></span>READ-ONLY MODE</div>
+
+        <nav class="nav-list" aria-label="Console views">
+          <button class="nav-item active" data-view="overview" type="button">
+            <span class="nav-icon" aria-hidden="true">&#9632;</span><span>Overview</span>
+          </button>
+          <button class="nav-item" data-view="cohort" type="button">
+            <span class="nav-icon" aria-hidden="true">&#9670;</span><span>Cohort</span>
+          </button>
+          <button class="nav-item" data-view="markets" type="button">
+            <span class="nav-icon" aria-hidden="true">&#9776;</span><span>Markets</span>
+          </button>
+          <button class="nav-item" data-view="safety" type="button">
+            <span class="nav-icon" aria-hidden="true">&#9673;</span><span>Risk &amp; safety</span>
+          </button>
+          <button class="nav-item" data-view="run-log" type="button">
+            <span class="nav-icon" aria-hidden="true">&#8942;</span><span>Run log</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="footer-label">PIPELINE STATUS</div>
+          <div class="footer-status"><span class="status-dot green"></span><span id="sidebar-status">Loading snapshot</span></div>
+          <div class="footer-caption" id="sidebar-run">No run selected</div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div class="breadcrumb"><span>PolySignal</span><span class="crumb-separator">/</span><strong id="view-label">Overview</strong></div>
+          <div class="topbar-actions">
+            <span class="snapshot-time" id="snapshot-time">Snapshot loading</span>
+            <button class="icon-button" id="refresh-button" type="button" title="Refresh read-only snapshot" aria-label="Refresh read-only snapshot">&#8635;</button>
+            <div class="user-chip" title="Local research workspace"><span class="avatar">PS</span><span>Operator</span></div>
+          </div>
+        </header>
+
+        <div class="content-wrap">
+          <section id="loading-state" class="loading-state" aria-live="polite">
+            <div class="loader-ring"></div><span>Loading run-scoped snapshot...</span>
+          </section>
+          <section id="error-state" class="error-state hidden" aria-live="assertive">
+            <div><strong>Snapshot unavailable</strong><span id="error-message">The local API did not respond.</span></div>
+            <button class="button secondary" id="retry-button" type="button">Retry</button>
+          </section>
+          <div id="app-content" class="hidden"></div>
+        </div>
+      </main>
+    </div>
+
+    <div id="detail-drawer" class="drawer-shell hidden" aria-hidden="true">
+      <button class="drawer-scrim" data-close-drawer type="button" aria-label="Close detail panel"></button>
+      <aside class="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+        <div class="drawer-header"><div><div class="eyebrow">RESEARCH DETAIL</div><h2 id="detail-title">Market detail</h2></div><button class="icon-button" data-close-drawer type="button" title="Close detail panel" aria-label="Close detail panel">&#10005;</button></div>
+        <div id="detail-content" class="drawer-content"></div>
+      </aside>
+    </div>
+
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>

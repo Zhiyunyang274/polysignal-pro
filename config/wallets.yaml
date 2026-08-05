@@ -1,0 +1,83 @@
+# Wallet Intelligence Configuration
+
+# =============================================================================
+# WATCHLIST
+# =============================================================================
+# Wallets to monitor (mock addresses for MVP)
+# Adding/removing wallets should be done by editing this file
+watchlist:
+  - address: "0x1111111111111111111111111111111111111111"
+    alias: "whale_1"
+    category: "whale"
+    is_active: true
+  - address: "0x2222222222222222222222222222222222222222"
+    alias: "whale_2"
+    category: "whale"
+    is_active: true
+  - address: "0x3333333333333333333333333333333333333333"
+    alias: "researcher_1"
+    category: "researcher"
+    is_active: true
+  - address: "0x4444444444444444444444444444444444444444"
+    alias: "trader_1"
+    category: "trader"
+    is_active: true
+  - address: "0x5555555555555555555555555555555555555555"
+    alias: "trader_2"
+    category: "trader"
+    is_active: false
+
+# =============================================================================
+# WALLET SCORING PARAMETERS
+# =============================================================================
+scoring:
+  # Minimum data requirements for profile
+  min_trades_for_profile: 10
+  min_volume_for_profile_usd: 1000
+
+  # Score weights
+  reliability_weight: 0.30
+  performance_weight: 0.35
+  specialization_weight: 0.20
+  discipline_weight: 0.15
+
+# =============================================================================
+# CONSENSUS PARAMETERS
+# =============================================================================
+consensus:
+  # Minimum wallets with activity for consensus
+  min_wallets_for_consensus: 2
+  # Minimum ratio of wallets in same direction (66%)
+  min_same_direction_ratio: 0.66
+
+# =============================================================================
+# COPY RISK PARAMETERS
+# =============================================================================
+copy_risk:
+  enabled: true
+  # Copy ratio thresholds (0-1)
+  low_threshold: 0.3
+  medium_threshold: 0.5
+  high_threshold: 0.7
+  # Copy risk penalty multiplier (copy_risk_score * 0.30 = penalty, max 30)
+  penalty_multiplier: 0.30
+
+# =============================================================================
+# CHASE RISK PARAMETERS (追高风险)
+# =============================================================================
+chase_risk:
+  enabled: true
+  # Price movement threshold for chase detection (5%)
+  price_threshold: 0.05
+  # Time window for chase detection (1 hour)
+  time_window_hours: 1
+  # Fast price move threshold for timing risk (3%)
+  fast_move_threshold: 0.03
+
+# =============================================================================
+# WALLET SIGNAL ONLY DETECTION
+# =============================================================================
+# When wallet_score >= 80 but other scores are weak, reject as wallet_signal_only
+wallet_signal_only:
+  wallet_score_threshold: 80
+  other_score_threshold: 60

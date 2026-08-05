@@ -1,0 +1,21 @@
+[Unit]
+Description=PolySignal Pro validation loop
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=polysignal
+Group=polysignal
+WorkingDirectory=/opt/polysignal/app
+EnvironmentFile=/opt/polysignal/.env
+ExecStart=/opt/polysignal/app/.venv/bin/python3 scripts/run_validation_loop.py --duration_hours 4 --max_markets 30 --scan_interval_seconds 180 --data_mode real_readonly --use_websocket true --llm_provider mock --max_llm_calls_per_hour 0 --enable_llm_sampling false --monitor_mode hybrid --alpha_candidates_file /opt/polysignal/runs/alpha_candidates.csv --avoid_candidates_file /opt/polysignal/runs/avoid_candidates.csv --watchlist_file /opt/polysignal/runs/persistent_watchlist.csv --alpha_priority_ratio 0.5 --alpha_repeat_target 3 --control_group_sampling_ratio 0.1 --output_dir /opt/polysignal/runs
+StandardOutput=append:/opt/polysignal/logs/validation-loop.log
+StandardError=append:/opt/polysignal/logs/validation-loop.err.log
+TimeoutStartSec=6h
+Restart=no
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

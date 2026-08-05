@@ -1,0 +1,118 @@
+# LLM Configuration
+# IMPORTANT: Default provider is mock. Real providers must be explicitly enabled.
+# API keys are loaded from environment variables ONLY.
+
+# Provider selection
+# Options: mock, deepseek, glm, zai, sensenova, xfyun_anthropic, router
+# Default: mock (safe for testing)
+# Override: LLM_PROVIDER environment variable
+provider: "mock"
+
+# DeepSeek settings
+# Model: config-driven, override via DEEPSEEK_MODEL env
+# API Key: DEEPSEEK_API_KEY env variable
+deepseek:
+  model: "deepseek-chat"  # Override via DEEPSEEK_MODEL
+  base_url: "https://api.deepseek.com/v1"
+  timeout_seconds: 30.0
+  max_retries: 2
+  rate_limit_per_minute: 60
+  temperature: 0.1
+  max_tokens: 2000
+  supports_json_mode: true  # DeepSeek supports response_format
+
+# GLM/Z.AI settings
+# Model: config-driven, override via ZAI_MODEL (preferred) or GLM_MODEL env
+# API Key: ZAI_API_KEY (preferred) or GLM_API_KEY env variable
+# Default model is glm-5 (NOT glm-4-flash)
+glm:
+  model: "glm-5"  # Override via ZAI_MODEL or GLM_MODEL
+  base_url: "https://open.bigmodel.cn/api/paas/v4"
+  timeout_seconds: 30.0
+  max_retries: 2
+  rate_limit_per_minute: 60
+  temperature: 0.1
+  max_tokens: 2000
+  supports_json_mode: false  # GLM may not support response_format, use prompt constraint
+
+# SenseNova settings (OpenAI-compatible)
+# Model: config-driven, override via SENSENOVA_MODEL env
+# API Key: SENSENOVA_API_KEY env variable
+# Endpoint: https://token.sensenova.cn/v1/chat/completions
+# NOTE: Smoke test showed high latency (39s for event analysis, timeout for rule analysis)
+# NOT recommended as default rule provider due to timeout issues.
+sensenova:
+  model: "sensenova-6.7-flash-lite"  # Override via SENSENOVA_MODEL
+  base_url: "https://token.sensenova.cn/v1"
+  timeout_seconds: 60  # Increased from 30 due to high latency observed in smoke test
+  max_retries: 2
+  temperature: 0.1
+  max_tokens: 2000
+  supports_json_mode: false  # Use prompt constraint for JSON
+
+# XFyun Anthropic settings
+# Model: config-driven, override via XFYUN_MODEL env
+# API Key: XFYUN_API_KEY env variable
+# Endpoint: https://maas-coding-api.cn-huabei-1.xf-yun.com/anthropic
+# RECOMMENDED: Smoke test passed for both event and rule analysis with good latency.
+xfyun_anthropic:
+  model: "astron-code-latest"  # Override via XFYUN_MODEL
+  base_url: "https://maas-coding-api.cn-huabei-1.xf-yun.com/anthropic"
+  timeout_seconds: 45  # Slightly increased for safety margin
+  max_retries: 2
+  temperature: 0.1
+  max_tokens: 2000
+  supports_json_mode: false  # Use prompt constraint for JSON
+
+# Mock settings (for testing)
+mock:
+  scenario: "success"  # success, invalid_json, low_confidence, timeout, schema_error, missing_fields
+  default_latency: 0.1
+
+# Router settings (when provider: router)
+# Based on real smoke test results:
+# - XFyun Anthropic: Event passed (26s), Rule passed (17s) - RECOMMENDED
+# - SenseNova: Event passed (39s), Rule timeout - NOT recommended for rule analysis
+router:
+  # Default providers for different analysis types
+  # XFyun Anthropic recommended for both based on smoke test results
+  default_event_provider: "xfyun_anthropic"  # XFyun: 26s latency, 0.92 confidence
+  default_rule_provider: "xfyun_anthropic"   # XFyun: 17s latency, 0.88 confidence
+
+  # Fallback provider (always mock for safety)
+  fallback_provider: "mock"
+
+  # Cross-provider fallback
+  # When false (default): XFyun -> Mock
+  # When true: XFyun -> SenseNova -> Mock (not recommended due to SenseNova latency)
+  allow_cross_provider_fallback: false
+
+# Output validation
+validation:
+  # Forbidden trading fields (checked in JSON keys only, NOT in text values)
+  forbidden_fields:
+    - "side"
+    - "size"
+    - "order"
+    - "position"
+    - "buy"
+    - "sell"
+    - "action"
+
+  # Minimum confidence threshold
+  min_confidence: 0.5
+
+  # Require JSON output
+  require_json: true
+
+  # Require confidence field
+  require_confidence: true
+
+# Prompt settings
+prompts:
+  event_analysis:
+    max_retries: 2
+    timeout_seconds: 30
+  market_rule_parsing:
+    max_retries: 2
+    timeout_seconds: 30

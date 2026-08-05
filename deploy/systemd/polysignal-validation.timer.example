@@ -1,0 +1,11 @@
+[Unit]
+Description=Run PolySignal Pro validation loop daily
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+Persistent=true
+RandomizedDelaySec=10m
+Unit=polysignal-validation.service
+
+[Install]
+WantedBy=timers.target

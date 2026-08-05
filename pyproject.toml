@@ -1,0 +1,88 @@
+[project]
+name = "polysignal-pro"
+version = "0.1.0"
+description = "Polymarket prediction market intelligence system - research-first, paper trading, risk-controlled"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "PolySignal Pro Team"}
+]
+keywords = ["polymarket", "prediction-market", "trading", "risk-management"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "pyyaml>=6.0",
+    "httpx[socks]>=0.25",
+    "websockets>=12.0",
+    "aiosqlite>=0.19",
+    "structlog>=23.0",
+    "rich>=13.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "pytest-cov>=4.0",
+    "ruff>=0.1",
+    "black>=23.0",
+    "mypy>=1.0",
+    "pandas>=2.0",
+]
+telegram = [
+    "python-telegram-bot>=20.0",
+]
+dashboard = [
+    "pandas>=2.0",
+    "streamlit>=1.28",
+    "plotly>=5.0",
+]
+llm = [
+    "openai>=1.0",
+]
+
+[project.scripts]
+polysignal = "polysignal.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["polysignal"]
+
+[tool.black]
+line-length = 100
+target-version = ["py39"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+asyncio_mode = "auto"
+addopts = "-v --tb=short"
+
+[tool.mypy]
+# mypy 1.18+ no longer accepts 3.9; runtime support remains >=3.9 per ADR-012.
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true

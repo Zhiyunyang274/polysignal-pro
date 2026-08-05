@@ -1,0 +1,41 @@
+x-polysignal-common: &polysignal-common
+  image: polysignal-pro:local
+  build:
+    context: .
+    dockerfile: Dockerfile
+  user: "10001:10001"
+  init: true
+  read_only: true
+  environment:
+    LIVE_TRADING_ENABLED: "false"
+    ALLOW_AUTO_EXECUTION: "false"
+    PAPER_TRADING_ENABLED: "true"
+    LOG_LEVEL: INFO
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,nodev,size=64m
+
+services:
+  polysignal:
+    <<: *polysignal-common
+    container_name: polysignal-pro
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config:ro
+    command: ["python", "-m", "polysignal.main"]
+
+  # Explicit opt-in service for public, read-only Step 12 research.
+  research:
+    <<: *polysignal-common
+    profiles:
+      - research
+    restart: "no"
+    volumes:
+      - ./config:/app/config:ro
+      - ./runs:/app/runs
+    command: ["python", "scripts/discover_crypto_threshold_edges.py", "--help"]
