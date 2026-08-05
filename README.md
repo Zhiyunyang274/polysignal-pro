@@ -1,374 +1,206 @@
-# PolySignal Pro
+<div align="center">
+  <h1>PolySignal Pro</h1>
+  <p><strong>Research-first market intelligence and paper trading for Polymarket.</strong></p>
+  <p>Observe public market data, explain candidate signals, and validate hypotheses under explicit risk controls.</p>
+  <p>
+    <a href="https://github.com/Zhiyunyang274/polysignal-pro/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-0f766e?style=flat-square" alt="MIT License" /></a>
+    <img src="https://img.shields.io/badge/Python-3.9%2B-3776ab?style=flat-square&logo=python&logoColor=white" alt="Python 3.9 or later" />
+    <img src="https://img.shields.io/badge/Mode-read--only%20%2B%20paper-0f766e?style=flat-square" alt="Read-only and paper trading" />
+    <img src="https://img.shields.io/badge/Live%20trading-disabled-991b1b?style=flat-square" alt="Live trading disabled" />
+  </p>
+  <p><a href="README.md">English</a> | <a href="README.zh-CN.md">简体中文</a></p>
+</div>
 
-**Polymarket Prediction Market Intelligence System**
+> Research software only. PolySignal Pro does not promise returns, does not place real orders by default, and does not treat paper results as evidence of profitability.
 
-A research-first, paper trading, risk-controlled system for analyzing Polymarket prediction markets.
+## What It Is
 
----
+PolySignal Pro is a local system for studying Polymarket market structure. It combines public market data, several independent research engines, a central risk decision, and deterministic paper-trading records.
 
-## ⚠️ Important Disclaimers
+| Observe | Decide | Validate |
+| --- | --- | --- |
+| Read mock or public read-only market and orderbook data. | Reject unsafe or ambiguous signals before any action. | Record paper outcomes and research artifacts for later review. |
 
-**This system is NOT:**
-- A get-rich-quick script
-- A guaranteed profit bot
-- An automated copy-trading system
-- An LLM autonomous trading system
-- A high-frequency trading system
+It is deliberately **not** an autonomous betting bot, a copy-trading product, a yield claim, or a high-frequency execution system.
 
-**This system IS:**
-- A research platform for prediction market analysis
-- A paper trading simulation tool
-- A risk-controlled signal generation system
-- A long-term strategy validation framework
+## From Data To Review
 
-**Default Mode: READ-ONLY + PAPER TRADING**
+```mermaid
+flowchart LR
+    A["Mock or public read-only data"] --> B["Market microstructure"]
+    A --> C["Wallet intelligence"]
+    A --> D["Event intelligence"]
+    A --> E["Resolution and lifecycle"]
+    B --> F["Risk Governor"]
+    C --> F
+    D --> F
+    E --> F
+    F --> G["Log and alert"]
+    F --> H["Deterministic paper trade"]
+    F --> I["Manual review"]
+```
 
-Live trading is **DISABLED** by default and requires explicit configuration.
+The fast market-data path remains lightweight: it does not call an LLM or make slow external requests. LLM output is structured research input only; it cannot place an order.
 
----
+## Key Capabilities
 
-## Features
-
-- **Data Provider Manager**: Supports mock, real_readonly, and hybrid modes
-- **Gamma API Client**: Fetch real market data from Polymarket
-- **CLOB REST Client**: Fetch real orderbook data (read-only)
-- **Market Microstructure Engine**: Analyze orderbook spread, depth, imbalance
-- **YES/NO Mispricing Detection**: Detect combined ask arbitrage opportunities
-- **Resolution & Lifecycle Engine**: Track market lifecycle and resolution risk
-- **Wallet Intelligence Engine**: Analyze wallet behavior and copy risk
-- **Event Intelligence Engine**: Assess event relevance and ambiguity
-- **Risk Governor**: Central risk control with hard rejection conditions
-- **Paper Trader**: Simulate trading for strategy validation
-- **Telegram Signal Cockpit**: Monitoring and control panel
-- **SQLite Storage**: Persistent logging for all signals and trades
-- **CLI + Streamlit Dashboard**: Read-only system and research summaries
-- **Local Web Console**: Responsive, read-only v7 cohort and safety review
-- **Crypto Threshold Shadow Validation**: Run-scoped, side-specific corrected PnL research
-
----
+| Area | Included | Boundary |
+| --- | --- | --- |
+| Data ingestion | Mock, public Gamma/CLOB REST, and read-only WebSocket sources | Public data only; errors degrade safely instead of stopping the system. |
+| Market structure | Spread, depth, orderbook imbalance, and YES/NO combined-price checks | A candidate signal is not a trade recommendation. |
+| Intelligence | Wallet behavior, event assessment, resolution semantics, and lifecycle checks | Wallet and LLM signals are supporting inputs, never sole execution reasons. |
+| Risk governance | Hard rejections, exposure limits, liquidity gates, stale-data checks, and circuit breakers | Hard rejections take priority over scores. |
+| Research execution | Deterministic paper trader, SQLite records, CLI, Telegram alerts, dashboards, and a local web console | The live trader remains a stub. |
+| Shadow validation | Run-scoped price, provenance, execution-cost, and forward-observation artifacts | Incomplete evidence fails closed and is not converted into PnL. |
 
 ## Quick Start
 
-### Prerequisites
-
-- Python 3.9+
-- pip or uv
-
-### Installation
+### 1. Install
 
 ```bash
-# Clone repository
-git clone <repository-url>
-cd PolySignal-Pro
+git clone https://github.com/Zhiyunyang274/polysignal-pro.git
+cd polysignal-pro
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies required by the full test suite and dashboard
-pip install -e ".[dev,dashboard]"
-
-# Equivalent uv workflow
+# Recommended: uv
 uv sync --extra dev --extra dashboard
+
+# Alternative: pip
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
+pip install -e ".[dev,dashboard]"
 ```
 
-### Configuration
-
-1. Copy `.env.example` to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. **DO NOT** modify `LIVE_TRADING_ENABLED` - it must remain `false`
-
-3. Optionally configure Telegram (for alerts):
-   ```
-   TELEGRAM_BOT_TOKEN=your_token
-   TELEGRAM_CHAT_ID=your_chat_id
-   ```
-
-### Run
+### 2. Create a local configuration
 
 ```bash
-# Run main application (mock mode by default)
-python -m polysignal.main
-
-# Or use CLI
-polysignal
+cp .env.example .env
 ```
 
-### Local Web Console
+The checked-in defaults are intentionally conservative:
 
-The project also includes a compact, read-only browser console for reviewing the
-latest v7 shadow-validation artifacts:
+```dotenv
+DATA_MODE=mock
+LIVE_TRADING_ENABLED=false
+ALLOW_AUTO_EXECUTION=false
+PAPER_TRADING_ENABLED=true
+LLM_PROVIDER=mock
+```
+
+Do not commit `.env`. Public market research works without a private key.
+
+### 3. Run the local pipeline
+
+```bash
+uv run polysignal
+```
+
+The default `mock` mode is the right place to verify your installation. Stop the long-running process with `Ctrl-C`.
+
+## Explore The Console
+
+Launch the compact local web console for the latest shadow-validation snapshot:
 
 ```bash
 uv run python scripts/run_web_console.py --port 8502
 ```
 
-Open <http://127.0.0.1:8502>. The server is loopback-only by default. It reads
-run-scoped JSON plus the non-secret safety configuration, does not load `.env`,
-make network or LLM calls, and exposes no order, signing, or mutation endpoint.
-It never writes to `runs/` or `config/`; restart or use the refresh control to
-read a newer snapshot.
+Then open [http://127.0.0.1:8502](http://127.0.0.1:8502). The server binds to loopback by default and exposes no signing, ordering, cancellation, or mutation endpoint. It does not load `.env`, make network calls, or write research artifacts.
 
-### Data Modes
-
-The system supports three data modes:
-
-| Mode | Description |
-|------|-------------|
-| `mock` | Uses simulated data (default) |
-| `real_readonly` | Uses real Polymarket API (read-only) |
-| `hybrid` | Tries real API first, falls back to mock |
-
-Set via environment variable:
-```bash
-DATA_MODE=mock  # or real_readonly or hybrid
-```
-
-### Real Read-only Smoke Test
-
-To test with real Polymarket API (read-only):
+For the Streamlit research dashboard, run:
 
 ```bash
-# Run smoke test with real API
-python scripts/smoke_real_readonly.py
+uv run python scripts/run_dashboard.py
 ```
 
-This script:
-- Fetches real markets from Gamma API
-- Fetches real orderbooks from CLOB REST API
-- Runs data through the full pipeline
-- Simulates paper trades (no real orders)
+## Choose A Data Mode
 
-**Important**: This script does NOT place real orders and does NOT require private keys.
+| Mode | Use It For | Behavior |
+| --- | --- | --- |
+| `mock` | Development, tests, and first run | Simulated data; the default. |
+| `real_readonly` | Public API smoke tests and read-only research | Fetches public Polymarket data without an account, key, or order route. |
+| `hybrid` | Resilient research experiments | Attempts public data and falls back to mock data on recoverable failures. |
 
----
-
-### Crypto Threshold Shadow Validation
-
-Use a new run directory for every discovery snapshot. The commands below remain public,
-read-only, and shadow-only:
+Set `DATA_MODE` in `.env`. To exercise the public read-only clients explicitly:
 
 ```bash
-RUN_DIR=runs/crypto_threshold_shadow/step12_<run_id>
-
-python scripts/discover_crypto_threshold_edges.py \
-  --max_markets 3000 \
-  --output_dir "$RUN_DIR/discovery" \
-  --avoid_candidates_file runs/avoid_candidates.csv
-
-python scripts/validate_crypto_threshold_shadow_pnl.py \
-  --candidate_file "$RUN_DIR/discovery/crypto_threshold_edge_candidates.csv" \
-  --avoid_file runs/avoid_candidates.csv \
-  --output_dir "$RUN_DIR/validation"
-
-# Run the poller only when validator positions_created > 0.
+uv run python scripts/smoke_real_readonly.py
 ```
 
-The validator uses the v7 contract and accepts only discovery schema v5/parser v4.
-`resolution_source_adapter_v1` accepts a structured Gamma
-source or one unique HTTPS URL inside an explicit resolution-source section. It trusts exact
-allowlisted hosts only; HTTP, multiple URLs, non-string fields, source conflicts, and untrusted
-hosts fail closed. Binance sources additionally require the candidate asset, `ASSET/USDT` pair,
-one-minute interval, and `High`/`Low` rule semantics to agree. Origin, locator, adapter version,
-rules SHA-256, and a provenance digest are persisted. Non-Binance sources must also match exactly
-one provider and asset in both the URL and rule prose.
+That smoke test fetches public markets and orderbooks, runs the pipeline, and may create paper-trading records. It never submits a real order.
 
-`gamma_expiry_adapter_v1` converts the title-local 23:59 cutoff using the explicit rules timezone
-and corroborates it against Gamma `endDate`; ambiguous, naive, conflicting, or mismatched evidence
-fails closed. The stable trade identity binds expiry/source provenance, spot, all client/server
-timestamps, four prices, four sizes, tokens, notional/shares, and gate fields. Existing prepared
-input is preserved under a content-addressed immutable filename before output replacement.
+## Safety Model
 
-Latest read-only run `step12_v7_20260804_140305` scanned 1,958 Gamma markets, detected 56 crypto
-markets, and parsed 44 threshold candidates. Discovery v5 committed one exact-minute batch entry,
-used three asset-level historical preloads plus three entry tails, and wrote three shared candle
-snapshots with 43 threshold-specific evidence manifests. Historical coverage verified 43/44; the
-remaining market has no rules-defined barrier start and remains fail-closed. Three public CLOB
-book reads were incomplete, so discovery recorded 12 shadow entries and 32 watch-only rows without
-inventing quotes.
+The system is designed to stop before acting when its evidence is weak.
 
-Validator v7 independently accepted 11 fresh positions across BTC/ETH/SOL and three correlated
-clusters. All 11 currently lack a qualifying >=240-minute forward observation, so closed positions
-are zero, PnL and win rate are null, and status is `insufficient_forward_data`. This is pipeline
-evidence, not an edge or profitability result. Gamma recorded one recoverable terminal pagination
-error, so the scan is not claimed as exhaustive.
+| Guardrail | Default behavior |
+| --- | --- |
+| Live execution | Disabled in [`config/risk.yaml`](config/risk.yaml). |
+| Automatic execution | Disabled in [`config/risk.yaml`](config/risk.yaml). |
+| Order path | The live trader is a non-executing stub. |
+| Risk decision | Every candidate passes through the Risk Governor; hard rejections win. |
+| LLM | Structured analysis only; never on the ultra-fast path and never an order source. |
+| Ambiguous markets | Resolution or lifecycle ambiguity blocks live eligibility. |
+| Secrets | Environment variables only; `.env` is ignored by Git. |
+| Research evidence | Missing, stale, conflicting, or incomplete observations fail closed. |
 
-The v5 run `step12_v5_20260804_073542` and all earlier runs are audit-only: v5 used the wrong
-ET/UTC cutoff, lacked historical barrier evidence, did not bind the complete entry identity, and
-did not validate the full forward book. Do not poll, migrate, supplement, or use them for PnL.
-The next research step is to collect qualifying forward observations after the 240-minute horizon
-and expand beyond three independent clusters. `tiny_live_recommendation` remains `NO`.
+Read the complete [risk policy](docs/risk_policy.md) before changing configuration or running public-data experiments.
 
-The restricted container profile is opt-in and keeps the root filesystem read-only, drops all
-capabilities, runs as UID/GID 10001, and forces live/automatic execution off:
+## Current Research State
+
+The crypto-threshold work is in **shadow validation**, not production trading. The current v7 cohort is collecting qualifying forward observations; it does not support a profitability claim, an edge claim, or a live-trading recommendation. Older artifacts are audit-only when their provenance or timing contract is insufficient.
+
+The evidence, constraints, and next gates are documented in [GitHub Polymarket Strategy Research](docs/github_polymarket_strategy_research.md). This project keeps incomplete results visible rather than filling gaps with assumptions.
+
+## Project Map
+
+```text
+polysignal/
+  ingestion/     Public and mock market data clients
+  engines/       Market, wallet, event, and lifecycle analysis
+  strategies/    Candidate-signal rules
+  risk/          Central risk controls and guards
+  execution/     Deterministic paper trading and a live-trader stub
+  shadow/        Run-scoped validation, provenance, and PnL research
+  interface/     CLI, Telegram, dashboards, and local web console
+  storage/       SQLite persistence
+
+config/          Safe defaults and provider configuration
+scripts/         Explicit research, validation, and reporting commands
+tests/           Unit, integration, safety, and regression coverage
+docs/            Architecture, operations, audit, and risk documentation
+```
+
+## Verify Locally
 
 ```bash
-docker compose --profile research run --rm research \
-  python scripts/discover_crypto_threshold_edges.py --help
-```
-
-On native Linux, ensure bind-mounted `runs/`, `data/`, and `logs/` directories are writable by UID
-10001 before using the corresponding service. No `.env` file is copied into the image.
-
-The current single-leg PaperTrader rejects `SignalSide.BOTH` until typed two-leg positions,
-independent leg ledgers, and non-atomic leg-risk handling are implemented.
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Data Ingestion                        │
-│  Mock / Real Read-only REST / Read-only WebSocket       │
-└─────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────┐
-│                    Intelligence Engines                  │
-│  Market Microstructure | Wallet | Event | Lifecycle     │
-└─────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────┐
-│                    Risk Governor                         │
-│  Hard Rejection | Score Calculation | Action Decision   │
-└─────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────┐
-│                    Execution Layer                       │
-│  Paper Trader (MVP) | Live Trader Stub                  │
-└─────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────┐
-│                    Storage & Interface                   │
-│  SQLite | CLI Dashboard | Telegram (Optional)          │
-└─────────────────────────────────────────────────────────┘
-```
-
----
-
-## Testing
-
-```bash
-# Run all tests in the declared environment
 uv run pytest -q
-
-# Current full verification: 1762 passed in 267.29s
 ```
 
-**Test Coverage:**
-- Config loading and validation
-- Data Provider Manager (mock / real_readonly / hybrid)
-- Gamma API Client
-- CLOB REST Client
-- Data Converter
-- Market Microstructure Engine
-- Resolution & Lifecycle Engine
-- Wallet Intelligence Engine
-- Event Intelligence Engine
-- YES/NO Mispricing Strategy
-- Risk Governor (hard rejection, score calculation, thresholds)
-- Paper Trader (execution, tracking, PnL)
-- Telegram Signal Cockpit
-
-**Note**: All tests use mock HTTP responses. Tests do NOT depend on real Polymarket API.
-
----
-
-## Safety Guarantees
-
-| Guarantee | Implementation |
-|-----------|----------------|
-| Live trading disabled | `live_trading_enabled: false` in config/risk.yaml |
-| Auto execution disabled | `allow_auto_execution: false` in config/risk.yaml |
-| Paper trading enabled | `paper_trading_enabled: true` in config/risk.yaml |
-| LLM cannot order | LLM only outputs analysis |
-| Risk Governor required | All signals must pass Risk Governor |
-| No real private keys | Read-only and shadow paths require no private key |
-| Paper trading only | Live trader is stub |
-| Ultra-fast path no LLM | YES/NO mispricing strategy does not call LLM |
-| Side-specific depth check | Risk Governor checks depth based on signal side |
-| Real API read-only | No POST/DELETE endpoints, no authentication |
-| No order placement | Smoke test uses read-only endpoints only |
-
----
-
-## Project Structure
-
-```
-PolySignal-Pro/
-├── config/           # Configuration files
-├── polysignal/       # Main package
-│   ├── models/       # Pydantic data models
-│   ├── ingestion/    # Data providers
-│   ├── engines/      # Intelligence engines
-│   ├── strategies/   # Trading strategies
-│   ├── risk/         # Risk management
-│   ├── execution/    # Order execution
-│   ├── storage/      # Database
-│   └── interface/    # CLI / Dashboard
-├── tests/            # Test suite
-└── docs/             # Documentation
-```
-
----
-
-## Milestone Status
-
-| Milestone | Status | Description |
-|-----------|--------|-------------|
-| M1 | ✅ Completed | Read-only + Paper Trading MVP |
-| M1.5 | ✅ Completed | Engineering Audit & Deliverable Cleanup |
-| M2A | ✅ Completed | Resolution & Lifecycle Engine |
-| M2B | ✅ Completed | Wallet Intelligence Engine |
-| M2C | ✅ Completed | Event Intelligence + Mock LLM |
-| M3 | ✅ Completed | Telegram Signal Cockpit |
-| Phase 4A | ✅ Completed | Real Read-only Polymarket API (REST) |
-| Phase 4A.5 | ✅ Completed | Real Read-only Smoke Test |
-| Phase 4B | ✅ Completed | CLOB WebSocket read-only |
-| Trading MVP Step 12 | ⏳ Forward data pending | v7 historical evidence complete; 11 paper positions; 0 closed |
-| M5 | 🔮 Optional | Tiny Live Limit Order |
-
----
-
-## License
-
-MIT License - See LICENSE file for details.
-
----
-
-## Contributing
-
-This project follows strict safety guidelines. All contributions must:
-- Keep `live_trading_enabled` default `false`
-- Not bypass Risk Governor
-- Include tests for core modules
-- Follow coding standards in `docs/coding_standard.md`
-
----
-
-## Risk Warning
-
-**Trading prediction markets involves risk.**
-
-This system is designed for **research purposes only**. Paper trading results do not guarantee real trading performance. Market conditions, liquidity, and execution can differ significantly between simulation and reality.
-
-**Never enable live trading without:**
-1. Understanding all risk parameters
-2. Testing extensively with paper trading
-3. Using only small test amounts
-4. Manual confirmation for each trade
-
----
+The public-release verification completed with `1762 passed`. Tests use mocks or controlled fixtures and do not require a Polymarket account or private key.
 
 ## Documentation
 
-- [CLAUDE.md](CLAUDE.md) - Claude Code engineering guidelines
-- [SPEC.md](SPEC.md) - Product specification
-- [AGENTS.md](AGENTS.md) - Agent team coordination
-- [docs/coding_standard.md](docs/coding_standard.md) - Coding standards
-- [docs/risk_policy.md](docs/risk_policy.md) - Risk policy
-- [docs/architecture_decisions.md](docs/architecture_decisions.md) - Architecture decisions
-- [docs/phase_4_api.md](docs/phase_4_api.md) - Phase 4 API integration guide
+| Document | Purpose |
+| --- | --- |
+| [Chinese README](README.zh-CN.md) | Full Simplified Chinese project guide. |
+| [Specification](SPEC.md) | Product scope, architecture, and acceptance criteria. |
+| [Engineering rules](CLAUDE.md) | Non-negotiable safety and implementation constraints. |
+| [Risk policy](docs/risk_policy.md) | Risk gates, defaults, and operating boundaries. |
+| [Architecture decisions](docs/architecture_decisions.md) | Recorded technical decisions and tradeoffs. |
+| [API integration guide](docs/phase_4_api.md) | Public read-only Polymarket API usage. |
+| [Package safety](docs/package_safety.md) | What is excluded from clean release packages. |
+
+## Contributing
+
+Contributions are welcome when they preserve the project's operating model:
+
+1. Keep `live_trading_enabled` and `allow_auto_execution` disabled by default.
+2. Do not add secrets, private keys, or authenticated order routes to examples or tests.
+3. Route candidate decisions through the Risk Governor and add focused tests.
+4. Treat missing or ambiguous market evidence as a reason to stop, not a reason to guess.
+
+See [AGENTS.md](AGENTS.md) and [docs/coding_standard.md](docs/coding_standard.md) for repository conventions.
+
+## License And Risk Notice
+
+Released under the [MIT License](LICENSE). Prediction markets involve financial risk. Paper results, historical observations, and model scores do not predict future performance. Use this repository for research, verify every assumption independently, and never commit credentials.
