@@ -1506,11 +1506,51 @@ I will not modify:
 
 ---
 
-## Iteration 033+ — 待办队列
+---
 
-1. **v12 pipeline**：等待完成（Coinbase 分页极慢）
-2. **实时报价接入**：CLOB WebSocket -> MarketMaker
-3. **A/B 对比**：MM vs 方向性
-4. **维护循环**：三门棘轮持续
+## Iteration 033 — 实时监控基础设施：信息扩散延迟检测（2026-09-13）
+
+**声明修改范围**：
+
+```text
+I will modify:
+- polysignal/monitoring/__init__.py（新增包）
+- polysignal/monitoring/real_time_lag.py（新增：RealTimeMonitor + 概率模型）
+- tests/test_real_time_lag.py（新增 11 项测试）
+
+I will not modify:
+- MarketMaker / SimBroker / 风控 / 策略
+```
+
+**实验目的**（Iteration 027 识别的方向）：实现实时信息扩散延迟检测——
+当外部现货价格接近 barrier 时，比较模型概率与市场隐含概率，检测市场是否滞后。
+这是做市模式之后的新方向：从批量扫描转向实时监控。
+
+**实现**：
+- `RealTimeMonitor`：连续 poll spot + orderbook，计算 one-touch barrier 概率
+  （反射原理近似 × 0.85 离散调整因子），与 market mid 比较，记录 edge > threshold_bps
+  的显著观测
+- `compute_model_probability`：基于 distance/time/vol 的 one-touch 概率公式
+- **数据结构**：LagObservation（时间戳、market_id、model_prob、market_mid、edge_bps）
+
+**实验结果**：
+- 11/11 tests passed（概率公式验证、lag 检测、观测累积、显著过滤）
+- **关键行为验证**：spot=$100 / barrier=$102（近屏障）→ 模型概率 ~45% vs 市场 11%
+  → edge ~34% = 34000 bps >> 50 bps 阈值 → 正确检测为显著滞后
+- mypy 98 files 0 errors / ruff 全绿 / 全量回归 **1932 passed**（+15 零回退）
+
+**收益变化**：无（基础设施）
+**风险变化**：下降——实时信息扩散检测能力建成，为做市模式提供了
+外部信号输入（超越纯 orderbook mid 定价）
+**是否保留**：✅ 保留
+
+---
+
+## Iteration 034+ — 待办队列
+
+1. **实时监控 + MarketMaker 集成**：将 RealTimeMonitor 的 lag 检测接入
+   MarketMaker 的公允价值计算（替代纯 orderbook mid）
+2. **v12 pipeline**：等待完成
+3. **维护循环**：三门棘轮持续
 
 ---
