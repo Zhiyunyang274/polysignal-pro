@@ -1554,3 +1554,23 @@ I will not modify:
 3. **维护循环**：三门棘轮持续
 
 ---
+
+---
+
+## Iteration 033b — A/B 正式对比：always-enter vs barrier-proximity（2026-09-13）
+
+**五规则全 PASS → KEEP_ELIGIBLE**
+
+| regime | baseline PnL | candidate PnL | 说明 |
+|---|---|---|---|
+| trend_up | +20.23 | +11.23 | candidate 入场更少 |
+| trend_down | -21.91 | -13.15 | 亏损减少 40% |
+| range | -11.50 | -9.25 | 改善 |
+| high_vol | -28.75 | **0.00**（动态价差挡住全部入场） | 风控门正确 |
+| liquidity_crisis | 0.00 | 0.00 | 契约门拦截 |
+
+聚合：candidate **-11.17** vs baseline **-41.93**——barrier-proximity 入场风格
+在全部五个环境中风险行为不劣于 baseline，且在 high_vol 中通过动态价差
+完全避免了损失。**做市/选择性入场模式优于无条件方向性入场。**
+
+---
