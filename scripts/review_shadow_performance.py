@@ -12,12 +12,13 @@ import argparse
 import csv
 import json
 from collections import Counter, defaultdict
-from datetime import datetime
 from pathlib import Path
 from statistics import mean
 from typing import Any
 
 import yaml
+
+from polysignal.utils.time import utc_now
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -416,7 +417,7 @@ def build_summary(
         "do not enter tiny live until shadow PnL improves over a larger sample",
     ]
     return {
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": utc_now().isoformat(),
         "trades_reviewed": len(diagnostics),
         "losing_trades": len(losing),
         "winning_trades": len(winning),

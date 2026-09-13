@@ -18,6 +18,7 @@ from statistics import mean, pstdev
 from typing import Any
 
 from polysignal.shadow.cross_market_convergence import CrossMarketConvergenceObservation
+from polysignal.utils.time import utc_now
 from scripts.discover_executable_edges import verify_safety
 
 FEATURE_FIELDS = [
@@ -204,7 +205,7 @@ def build_summary(features: list[dict[str, Any]], total_observations: int) -> di
     gap_changes = [float(row.get("gap_change") or 0.0) for row in features]
     volatilities = [float(row.get("gap_volatility") or 0.0) for row in features]
     return {
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": utc_now().isoformat(),
         "groups_analyzed": len({row.get("group_id") for row in features if row.get("group_id")}),
         "pairs_analyzed": len(features),
         "total_observations": total_observations,

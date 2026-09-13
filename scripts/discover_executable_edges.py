@@ -25,6 +25,7 @@ import yaml
 from polysignal.ingestion.api_errors import CLOBError
 from polysignal.ingestion.api_types import CLOBOrderbook
 from polysignal.ingestion.clob_client import CLOBReadOnlyClient
+from polysignal.utils.time import utc_now
 from scripts.backfill_shadow_token_ids import coerce_list, token_pair_from_outcomes, valid_token_id
 from scripts.run_shadow_paper_loop import safe_float
 
@@ -341,7 +342,7 @@ async def discover_edges(
     gamma_client: Any | None = None,
     clob_client: Any | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    started = datetime.utcnow()
+    started = utc_now()
     timestamp = started.isoformat()
     errors: list[dict[str, str]] = []
     api_error_count = 0
@@ -463,7 +464,7 @@ def build_summary(
     errors: list[dict[str, str]],
     evaluated_rows: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    ended = datetime.utcnow()
+    ended = utc_now()
     rows_for_counts = evaluated_rows if evaluated_rows is not None else candidates
     return {
         "started_at": started.isoformat(),

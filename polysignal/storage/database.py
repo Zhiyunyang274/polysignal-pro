@@ -24,6 +24,7 @@ from polysignal.models.market import Market
 from polysignal.models.paper_trade import PaperOrder, PaperPosition
 from polysignal.models.risk import RiskDecision
 from polysignal.models.signal import Signal
+from polysignal.utils.time import utc_now
 
 logger = get_logger("polysignal.storage.database")
 
@@ -698,7 +699,7 @@ class Database:
             VALUES (?, ?, ?, ?, ?)
             """,
             (
-                datetime.utcnow().isoformat(),
+                utc_now().isoformat(),
                 component,
                 status,
                 message,
@@ -795,7 +796,7 @@ class Database:
                 wallet_address,
                 result,
                 result_message,
-                datetime.utcnow().isoformat(),
+                utc_now().isoformat(),
             ),
         )
         await self._db.commit()
@@ -842,7 +843,7 @@ class Database:
                 INSERT INTO ignore_rules (market_id, strategy_name, added_by, added_at)
                 VALUES (?, ?, ?, ?)
                 """,
-                (market_id, strategy_name, added_by, datetime.utcnow().isoformat()),
+                (market_id, strategy_name, added_by, utc_now().isoformat()),
             )
             await self._db.commit()
             return True
@@ -902,7 +903,7 @@ class Database:
                 INSERT INTO blacklist (target_type, target_id, reason, added_by, added_at)
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                (target_type, target_id, reason, added_by, datetime.utcnow().isoformat()),
+                (target_type, target_id, reason, added_by, utc_now().isoformat()),
             )
             await self._db.commit()
             return True
@@ -959,7 +960,7 @@ class Database:
                 INSERT INTO wallet_watchlist_runtime (wallet_address, added_by, added_at, notes)
                 VALUES (?, ?, ?, ?)
                 """,
-                (wallet_address, added_by, datetime.utcnow().isoformat(), notes),
+                (wallet_address, added_by, utc_now().isoformat(), notes),
             )
             await self._db.commit()
             return True
@@ -1022,7 +1023,7 @@ class Database:
             INSERT OR REPLACE INTO system_state (key, value, updated_by, updated_at)
             VALUES (?, ?, ?, ?)
             """,
-            (key, value, updated_by, datetime.utcnow().isoformat()),
+            (key, value, updated_by, utc_now().isoformat()),
         )
         await self._db.commit()
 
@@ -1045,7 +1046,7 @@ class Database:
             INSERT OR REPLACE INTO signal_reviews (signal_id, reviewed_by, reviewed_at, notes)
             VALUES (?, ?, ?, ?)
             """,
-            (signal_id, reviewed_by, datetime.utcnow().isoformat(), notes),
+            (signal_id, reviewed_by, utc_now().isoformat(), notes),
         )
         await self._db.commit()
 

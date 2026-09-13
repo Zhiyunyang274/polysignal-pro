@@ -1,6 +1,7 @@
 """Tests for Trading MVP Step 4A multi-edge discovery."""
 
 from __future__ import annotations
+from datetime import timezone
 
 import argparse
 import ast
@@ -327,7 +328,7 @@ def test_output_csv_json_summary_format(tmp_path: Path):
     no = multi.book_features(orderbook("no1", 0.53, 0.54))
     candidate = multi.probability_edge_for_side(market(), multi.TokenPair("yes1", "no1"), yes, no, "YES", args(tmp_path), "t", [])
     rows = multi.output_rows([candidate])
-    summary = multi.summarize(__import__("datetime").datetime.utcnow(), [market()], 1, 2, [candidate], 0, [])
+    summary = multi.summarize(__import__("datetime").datetime.now(__import__("datetime").timezone.utc), [market()], 1, 2, [candidate], 0, [])
 
     multi.write_csv(tmp_path / "multi_edge_candidates.csv", rows)
     multi.write_json(tmp_path / "multi_edge_candidates.json", rows)

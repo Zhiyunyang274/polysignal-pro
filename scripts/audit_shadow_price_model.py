@@ -12,11 +12,12 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+from polysignal.utils.time import utc_now
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -118,7 +119,7 @@ def audit_trade(row: dict[str, str]) -> dict[str, Any]:
 def build_summary(trades: list[dict[str, str]], trade_file: Path) -> dict[str, Any]:
     audits = [audit_trade(row) for row in trades]
     return {
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": utc_now().isoformat(),
         "trade_file": str(trade_file),
         "trades_reviewed": len(trades),
         "combined_ask_entry_detected_count": sum(1 for row in audits if row["combined_ask_entry_detected"]),

@@ -27,6 +27,8 @@ from typing import Any
 
 import yaml
 
+from polysignal.utils.time import utc_now
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_RUNS_DIR = REPO_ROOT / "runs"
 SUMMARY_FILENAME = "validation_loop_summary.json"
@@ -65,7 +67,7 @@ class StepResult:
 class LoopState:
     """State accumulated during a validation loop run."""
 
-    started_at: datetime = field(default_factory=datetime.utcnow)
+    started_at: datetime = field(default_factory=utc_now)
     ended_at: datetime | None = None
     run_command: list[str] = field(default_factory=list)
     run_id: str | None = None
@@ -79,7 +81,7 @@ class LoopState:
     steps: list[StepResult] = field(default_factory=list)
 
     def to_summary(self) -> dict[str, Any]:
-        ended_at = self.ended_at or datetime.utcnow()
+        ended_at = self.ended_at or utc_now()
         return {
             "started_at": self.started_at.isoformat(),
             "ended_at": ended_at.isoformat(),
@@ -344,7 +346,7 @@ def run_step(name: str, command: list[str], cwd: Path = REPO_ROOT) -> StepResult
 
 def write_summary(output_dir: Path, state: LoopState) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
-    state.ended_at = state.ended_at or datetime.utcnow()
+    state.ended_at = state.ended_at or utc_now()
     path = output_dir / SUMMARY_FILENAME
     path.write_text(json.dumps(state.to_summary(), indent=2))
     return path

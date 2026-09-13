@@ -19,6 +19,7 @@ from polysignal.models.orderbook import (
     OrderBookSnapshot,
     PriceLevel,
 )
+from polysignal.utils.time import utc_now
 
 logger = get_logger("polysignal.ingestion.orderbook_cache")
 
@@ -54,8 +55,8 @@ class TokenOrderBookCache:
         """
         self.bids = {level.price: level.size for level in bids}
         self.asks = {level.price: level.size for level in asks}
-        self.last_snapshot_time = datetime.utcnow()
-        self.last_update_time = datetime.utcnow()
+        self.last_snapshot_time = utc_now()
+        self.last_update_time = utc_now()
         self.update_count += 1
 
     def apply_update(
@@ -86,7 +87,7 @@ class TokenOrderBookCache:
                 else:
                     self.asks[price] = size
 
-        self.last_update_time = datetime.utcnow()
+        self.last_update_time = utc_now()
         self.update_count += 1
 
     def get_bid_side(self) -> OrderBookSide:
@@ -121,7 +122,7 @@ class TokenOrderBookCache:
         """
         if not self.last_update_time:
             return True
-        age = (datetime.utcnow() - self.last_update_time).total_seconds()
+        age = (utc_now() - self.last_update_time).total_seconds()
         return age > threshold_seconds
 
     def clear(self) -> None:
@@ -275,7 +276,7 @@ class OrderBookCacheManager:
         snapshot = OrderBookSnapshot(
             snapshot_id=str(uuid4()),
             market_id=market_id,
-            timestamp=datetime.utcnow(),
+            timestamp=utc_now(),
             yes_bids=yes_cache.get_bid_side() if yes_cache else OrderBookSide(),
             yes_asks=yes_cache.get_ask_side() if yes_cache else OrderBookSide(),
             no_bids=no_cache.get_bid_side() if no_cache else OrderBookSide(),

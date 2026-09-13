@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import csv
 import json
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from polysignal.shadow.models import SHADOW_TRADE_FIELDS, ShadowTrade, ShadowTradeStatus
 from polysignal.shadow.pnl import summarize_performance
+from polysignal.utils.time import utc_now
 
 DIAGNOSTIC_FIELDS = [
     "market_id",
@@ -64,7 +64,7 @@ def write_shadow_trades_csv(path: Path, trades: list[ShadowTrade]) -> None:
 def write_shadow_positions_json(path: Path, trades: list[ShadowTrade]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     positions = {
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": utc_now().isoformat(),
         "open_positions": [
             trade.to_dict() for trade in trades if trade.status == ShadowTradeStatus.OPEN
         ],
@@ -85,7 +85,7 @@ def build_performance_summary(
 ) -> dict[str, Any]:
     summary = summarize_performance(trades)
     summary.update({
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": utc_now().isoformat(),
         "safety_verification": safety_verification,
     })
     if diagnostics_summary:

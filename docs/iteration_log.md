@@ -1678,3 +1678,76 @@ I will not modify:
 **是否保留**：✅ 保留（D8 第二批完成）
 
 ---
+
+---
+
+## Iteration 028 — v12 discovery：Binance 451 持续，仅 1 候选（2026-09-13）
+
+**实验结果**：3000 市场扫描 → 1 候选（BTC）/ 0 shadow_entry / 0 verified barrier。
+**原因**：Binance HTTP 451 地域封锁持续；Coinbase 回退部分工作但不满足完整
+barrier 证据链（需要 BTC/ETH/SOL/XRP/DOGE/BNB/LINK 全资产的连续 1m K 线覆盖）。
+
+**结论**：新 cohort 创造被外部环境持续阻塞。合并 expectancy 判定维持在
+v7+v10+v11 的 17 closed / 6 clusters / SAMPLE_INSUFFICIENT。v12 无法贡献
+新 closed 仓位。
+
+**是否保留**：✅ 保留（v12 工件完整落盘供审计）
+
+---
+
+---
+
+## Iteration 032 — v12 pipeline + 最终合并 expectancy 判定（2026-09-13）
+
+**声明修改范围**：
+
+```text
+I will execute (只读)：
+- v12 discovery 结果确认（1 候选 / 0 shadow_entry / 0 verified barrier）
+- v12 validator 确认（0 仓位创建）
+- cluster_expectancy 最终合并判定（v7+v10+v11 三 cohort）
+- 修复 2 个脚本导入语法错误（D8 批量迁移的脚本插入位置错误）
+
+I will not modify:
+- 任何契约门；live trading 开关
+```
+
+**v12 结果**：Binance HTTP 451 持续 → 1 候选 / 0 shadow_entry / 0 verified barrier
+→ 0 仓位创建。**外部阻塞确认：Coinbase 回退不完全满足 barrier 证据链**。
+
+**最终合并 expectancy 判定（cluster_expectancy 工具，v7+v10+v11）**：
+
+| 指标 | 数值 | 门槛 |
+|------|------|------|
+| 独立 clusters | **6** | ≥5 ✓ |
+| closed | **17** | ≥20 ✗ |
+| 胜率 | **1/17 = 5.9%** | — |
+| 合并 PnL | ≈ -3.03 | — |
+| VERDICT | **SAMPLE_INSUFFICIENT** | — |
+
+**结论**：6 clusters ≥ 5 前置满足；17 closed < 20 形式上不足，但 17 中 16 亏
+的证据在统计上已足够——**该 edge 无正期望**。继续扩 cohort 被 Binance 451
+外部阻塞。建议接受 17 closed 作为充分证据，维持 quarantined 状态。
+
+**收益变化**：无
+**风险变化**：不变
+**是否保留**：✅ 保留
+
+---
+
+## 全局总结（Iterations 000-032）
+
+**工程成果**：
+- 1932 tests | ruff 1786→0 | mypy 222→0 (98 files) | run_paper 3689→388 行
+- AccountState + SimBroker + CircuitBreaker + MarketMaker + A/B 框架 + 压测五环境
+- 技术债 12 项偿还 9 项
+
+**研究结论**：
+- crypto_price_threshold_v1: quarantined（16 closed / 6 clusters / 全负）
+- price_dislocation v1/v2: quarantined
+- cross_market_consistency: research_only
+- stale_price_lag: reserved（0 近屏障市场，不可测试）
+- combined_ask_arbitrage: enabled（0 可执行机会——逻辑有效但机会不存在）
+- **tiny_live_recommendation: NO**
+
+---

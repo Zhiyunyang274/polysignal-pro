@@ -65,6 +65,7 @@ from polysignal.shadow.resolution_provenance import (
     ResolutionProvenance,
     resolve_resolution_provenance,
 )
+from polysignal.utils.time import utc_now
 from scripts.discover_executable_edges import (
     GammaActiveMarketClient,
     TokenPair,
@@ -843,7 +844,7 @@ def parse_direction(text: str) -> tuple[str, float]:
 
 
 def parse_expiry_time(text: str, now: datetime | None = None) -> tuple[str, float]:
-    now = now or datetime.utcnow()
+    now = now or utc_now()
     normalized = normalize_text(text)
     weekdays = {
         "monday": 0,

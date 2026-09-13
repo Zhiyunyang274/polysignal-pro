@@ -19,11 +19,12 @@ import argparse
 import csv
 import json
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+from polysignal.utils.time import utc_now
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_RUNS_DIR = REPO_ROOT / "runs"
@@ -232,7 +233,7 @@ def aggregate_summary(data: DailyReportData) -> dict[str, Any]:
     q2 = validation.get("q2_avoid_risk_validation", {}) if validation else {}
 
     return {
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": utc_now().isoformat(),
         "date_range": date_range_for_runs(runs),
         "runs_analyzed": len(runs),
         "run_ids": [r.run_id for r in runs],

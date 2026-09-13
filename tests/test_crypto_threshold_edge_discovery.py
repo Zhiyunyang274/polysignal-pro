@@ -4,7 +4,7 @@ import csv
 import hashlib
 import json
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -1207,7 +1207,7 @@ def test_output_csv_json_summary_report(tmp_path: Path):
         "recommended_action": "watch_only",
     }
     summary = discovery.build_summary(
-        started=__import__("datetime").datetime.utcnow(),
+        started=__import__("datetime").datetime.now(timezone.utc),
         markets=[market()],
         crypto_markets_detected=1,
         parsed_threshold_markets=1,

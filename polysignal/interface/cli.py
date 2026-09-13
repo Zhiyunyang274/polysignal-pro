@@ -4,7 +4,6 @@ CLI Module - Command line interface for PolySignal Pro
 Provides summary output and basic commands.
 """
 
-from datetime import datetime
 from typing import Any
 
 from rich.console import Console
@@ -15,6 +14,7 @@ from rich.text import Text
 from polysignal.models.paper_trade import PaperOrder, PaperPosition, PaperTradeStats
 from polysignal.models.risk import RiskDecision
 from polysignal.models.signal import Signal
+from polysignal.utils.time import utc_now
 
 console = Console()
 
@@ -215,7 +215,7 @@ def print_summary(
     console.clear()
     print_header()
 
-    console.print(f"\n[dim]Timestamp: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}[/dim]")
+    console.print(f"\n[dim]Timestamp: {utc_now().strftime('%Y-%m-%d %H:%M:%S')}[/dim]")
 
     print_system_health(health)
     print_signals(signals)

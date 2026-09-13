@@ -5,7 +5,7 @@ These fixtures provide mock API responses for testing without
 connecting to real Polymarket APIs.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 # =============================================================================
 # Gamma API Fixtures
@@ -186,7 +186,7 @@ def create_clob_orderbook_response(
         "asset_id": asset_id,
         "bids": bids,
         "asks": asks,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
     }
 
 
@@ -227,7 +227,7 @@ def create_clob_ticker_response(
         "market": market,
         "asset_id": asset_id,
         "price": price,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
     }
 
 
@@ -252,7 +252,7 @@ def create_clob_orderbook_empty() -> dict:
         "asset_id": "empty_token",
         "bids": [],
         "asks": [],
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
     }
 
 
@@ -270,7 +270,7 @@ def create_clob_orderbook_invalid_prices() -> dict:
             {"price": "0.5", "size": "invalid"},
             {"price": "0.5", "size": "-100"},   # Negative size
         ],
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
     }
 
 
@@ -298,5 +298,5 @@ def create_ws_orderbook_message(
         "asks": [
             {"price": "0.46", "size": "1000"},
         ],
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
     }

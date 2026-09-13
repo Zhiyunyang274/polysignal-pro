@@ -16,7 +16,7 @@ import json
 import os
 import sys
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -830,7 +830,7 @@ class TestIntegration:
                 paper_trading_enabled=True,
             )
         )
-        runner.stats = RunStatistics(run_id="test_run", start_time=datetime.utcnow())
+        runner.stats = RunStatistics(run_id="test_run", start_time=datetime.now(timezone.utc))
 
         runner._generate_alpha_repeat_reports()
 

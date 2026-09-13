@@ -19,6 +19,7 @@ from typing import Any
 
 import yaml
 
+from polysignal.utils.time import utc_now
 from scripts.backfill_shadow_token_ids import (
     GammaLookupStats,
     GammaTokenLookupClient,
@@ -178,7 +179,7 @@ def build_summary(
     errors: list[dict[str, str]],
     runs_dir: Path,
 ) -> dict[str, Any]:
-    ended = datetime.utcnow()
+    ended = utc_now()
     candidates_with_tokens = sum(1 for row in updated_rows if row_has_valid_tokens(row))
     return {
         "started_at": started.isoformat(),
@@ -275,7 +276,7 @@ def improve_coverage(
     args: argparse.Namespace,
     api_client: Any | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    started = datetime.utcnow()
+    started = utc_now()
     runs_dir = Path(args.runs_dir)
     shadow_dir = Path(args.shadow_dir)
     candidate_file, rows = load_candidate_rows(runs_dir)

@@ -281,10 +281,10 @@ class TestDataProviderManager:
 
     def test_cache_valid_after_set(self):
         """Test cache is valid after setting timestamp"""
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         manager = DataProviderManager()
-        manager._cache_timestamp = datetime.utcnow()
+        manager._cache_timestamp = datetime.now(timezone.utc)
 
         assert manager._is_cache_valid() is True
 

@@ -230,12 +230,12 @@ class TestWSMessage:
 
     def test_ws_message_creation(self):
         """Test creating WSMessage"""
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         msg = WSMessage(
             token_id="test_token",
             message_type="book",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
         )
 
         assert msg.token_id == "test_token"

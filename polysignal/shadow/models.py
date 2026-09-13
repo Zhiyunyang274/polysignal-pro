@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
 from enum import Enum
 from typing import Any
 from uuid import uuid4
+
+from polysignal.utils.time import utc_now
 
 
 class ShadowSide(str, Enum):
@@ -181,7 +182,7 @@ class ShadowTrade:
             market_id=candidate.market_id,
             question=candidate.question,
             side=candidate.side,
-            entry_time=candidate.entry_time or datetime.utcnow().isoformat(),
+            entry_time=candidate.entry_time or utc_now().isoformat(),
             entry_price=entry_side_price,
             entry_reason=entry_reason,
             expected_edge=candidate.expected_edge,

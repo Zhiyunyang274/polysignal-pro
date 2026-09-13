@@ -12,13 +12,13 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 from polysignal.shadow.entry_filter import EntryFilterConfig, ShadowEntryFilter
+from polysignal.utils.time import utc_now
 from scripts.run_shadow_paper_loop import candidate_from_tradable, safe_float
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -175,7 +175,7 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
             eligible += 1
     statuses = [str(row.get("expected_edge_status") or "") for row in rows]
     return {
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": utc_now().isoformat(),
         "candidates_loaded": len(rows),
         "expected_edge_available_count": sum(1 for row in rows if safe_float(row.get("expected_edge"), 0.0) > 0),
         "executable_edge_positive_count": sum(1 for row in rows if safe_float(row.get("executable_edge"), 0.0) > 0),

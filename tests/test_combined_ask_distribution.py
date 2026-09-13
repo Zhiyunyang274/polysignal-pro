@@ -10,7 +10,7 @@ Coverage:
 
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
@@ -32,7 +32,7 @@ class TestCombinedAskDistribution:
         """Test RunStatistics has combined_ask_observations field"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         assert hasattr(stats, "combined_ask_observations")
         assert stats.combined_ask_observations == []
@@ -41,7 +41,7 @@ class TestCombinedAskDistribution:
         """Test to_dict includes combined_ask_distribution"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.combined_ask_observations = [1.01, 1.02, 1.03, 1.04, 1.05]
 
@@ -54,7 +54,7 @@ class TestCombinedAskDistribution:
         """Test _calculate_combined_ask_distribution with no observations"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
 
         result = stats._calculate_combined_ask_distribution()
@@ -68,7 +68,7 @@ class TestCombinedAskDistribution:
         """Test _calculate_combined_ask_distribution with basic data"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.combined_ask_observations = [1.01, 1.02, 1.03, 1.04, 1.05]
 
@@ -83,7 +83,7 @@ class TestCombinedAskDistribution:
         """Test _calculate_combined_ask_distribution percentiles"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         # 100 observations from 1.00 to 1.99
         stats.combined_ask_observations = [1.00 + i * 0.01 for i in range(100)]
@@ -103,7 +103,7 @@ class TestCombinedAskDistribution:
         """Test _calculate_combined_ask_distribution sample values"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.combined_ask_observations = [1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.10]
 
@@ -116,7 +116,7 @@ class TestCombinedAskDistribution:
         """Test _calculate_combined_ask_distribution with single value"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.combined_ask_observations = [1.05]
 
@@ -150,7 +150,7 @@ class TestReportIncludesCombinedAsk:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         runner.stats.combined_ask_observations = [1.01, 1.02, 1.03, 1.04, 1.05]
 
@@ -176,7 +176,7 @@ class TestReportIncludesCombinedAsk:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
 
         report = runner._generate_markdown_report()
@@ -192,7 +192,7 @@ class TestSummaryJsonIncludesCombinedAsk:
         """Test summary.json has correct structure"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.combined_ask_observations = [1.01, 1.02, 1.03]
 

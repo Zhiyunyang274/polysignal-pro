@@ -21,7 +21,6 @@ Environment:
 
 import asyncio
 import sys
-from datetime import datetime
 
 # Add project root to path
 sys.path.insert(0, ".")
@@ -42,6 +41,7 @@ from polysignal.models.wallet import WalletProfile, WalletSpecialization
 from polysignal.risk.risk_governor import RiskGovernor
 from polysignal.strategies.base import StrategyContext
 from polysignal.strategies.yes_no_mispricing import YesNoMispricingStrategy
+from polysignal.utils.time import utc_now
 
 logger = get_logger("polysignal.smoke_real_readonly")
 
@@ -76,7 +76,7 @@ def print_header():
     print("\n" + "=" * 60)
     print("PolySignal Pro - Real Read-only API Smoke Test")
     print("=" * 60)
-    print(f"Started: {datetime.utcnow().isoformat()}")
+    print(f"Started: {utc_now().isoformat()}")
     print("Mode: REAL_READONLY")
     print("=" * 60 + "\n")
 

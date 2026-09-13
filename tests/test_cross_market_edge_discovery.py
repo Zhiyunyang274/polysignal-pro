@@ -1,6 +1,7 @@
 """Tests for Trading MVP Step 9A cross-market consistency edge discovery."""
 
 from __future__ import annotations
+from datetime import timezone
 
 import argparse
 import ast
@@ -204,7 +205,7 @@ def test_output_csv_json_summary_format(tmp_path: Path):
         for field in cross.FIELDS
     }
     row.update({"edge_type": "cross_market_consistency_v1", "market_id": "m1", "recommended_action": "watch_only"})
-    summary = cross.summarize(__import__("datetime").datetime.utcnow(), [market()], [], [row], 0, 0, [])
+    summary = cross.summarize(__import__("datetime").datetime.now(__import__("datetime").timezone.utc), [market()], [], [row], 0, 0, [])
 
     cross.write_csv(tmp_path / "cross_market_edge_candidates.csv", [row])
     cross.write_json(tmp_path / "cross_market_edge_candidates.json", [row])

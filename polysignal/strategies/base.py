@@ -4,12 +4,12 @@ Strategy Base - Base class for all trading strategies
 """
 
 from abc import ABC, abstractmethod
-from datetime import datetime
 from typing import Any
 
 from polysignal.models.market import Market
 from polysignal.models.orderbook import OrderBookSnapshot
 from polysignal.models.signal import ComponentScores, Signal
+from polysignal.utils.time import utc_now
 
 
 class StrategyContext:
@@ -26,7 +26,7 @@ class StrategyContext:
         self.orderbook = orderbook
         self.component_scores = component_scores or ComponentScores()
         self.metadata = metadata or {}
-        self.timestamp = datetime.utcnow()
+        self.timestamp = utc_now()
 
 
 class Strategy(ABC):

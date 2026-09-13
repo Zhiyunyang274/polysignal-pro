@@ -12,7 +12,6 @@ import argparse
 import asyncio
 import csv
 import json
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +22,7 @@ from polysignal.ingestion.api_types import CLOBOrderbook
 from polysignal.ingestion.clob_client import CLOBReadOnlyClient
 from polysignal.shadow.entry_filter import EntryFilterConfig, ShadowEntryFilter
 from polysignal.shadow.forward_observations import ShadowTokenIdResolver
+from polysignal.utils.time import utc_now
 from scripts.backfill_shadow_token_ids import (
     GammaTokenLookupClient,
     lookup_missing_token_pairs,
@@ -209,7 +209,7 @@ async def refresh_prices(
     api_errors = 0
     missing_token_id_count = 0
     empty_orderbook_count = 0
-    timestamp = datetime.utcnow().isoformat()
+    timestamp = utc_now().isoformat()
 
     try:
         for row in rows[:max_candidates]:
@@ -269,7 +269,7 @@ def summarize_refresh(
         if entry_filter.evaluate(candidate).allowed:
             eligible += 1
     return {
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": utc_now().isoformat(),
         "candidates_loaded": candidates_loaded,
         "candidates_refreshed": len(rows),
         "candidates_priced": len(priced),

@@ -15,7 +15,6 @@ IMPORTANT:
 import asyncio
 import signal
 import sys
-from datetime import datetime
 from typing import Any
 
 from polysignal.config import Config, config
@@ -41,6 +40,7 @@ from polysignal.risk.risk_governor import RiskGovernor
 from polysignal.storage.database import Database
 from polysignal.strategies.base import StrategyContext
 from polysignal.strategies.yes_no_mispricing import YesNoMispricingStrategy
+from polysignal.utils.time import utc_now
 
 logger = get_logger("polysignal.main")
 
@@ -188,7 +188,7 @@ class PolySignalPro:
         7. Send Telegram notifications
         8. Store results
         """
-        cycle_start = datetime.utcnow()
+        cycle_start = utc_now()
         cycle_results: dict[str, Any] = {
             "markets_checked": 0,
             "signals_generated": 0,
@@ -297,7 +297,7 @@ class PolySignalPro:
             self.circuit_breaker.record_api_failure()
 
         # Log cycle summary
-        cycle_duration = (datetime.utcnow() - cycle_start).total_seconds()
+        cycle_duration = (utc_now() - cycle_start).total_seconds()
         logger.info(
             "Cycle completed",
             duration_seconds=cycle_duration,

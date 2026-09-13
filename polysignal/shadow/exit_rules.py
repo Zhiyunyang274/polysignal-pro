@@ -8,6 +8,7 @@ from typing import Any
 
 from polysignal.shadow.models import ExitReason, ShadowSide, ShadowTrade
 from polysignal.shadow.pnl import calculate_return_pct
+from polysignal.utils.time import utc_now
 
 
 @dataclass
@@ -29,11 +30,11 @@ class ExitDecision:
 
 def parse_time(value: str) -> datetime:
     if not value:
-        return datetime.utcnow()
+        return utc_now()
     try:
         return datetime.fromisoformat(value)
     except ValueError:
-        return datetime.utcnow()
+        return utc_now()
 
 
 def observation_time(entry_time: datetime, index: int, obs: dict[str, Any]) -> datetime:
@@ -118,4 +119,9 @@ def decide_exit(
 
 
 def minutes(start: datetime, end: datetime) -> float:
-    return max(0.0, (end - start).total_seconds() / 60.0)
+    from polysignal.utils.time import ensure_utc
+    s = ensure_utc(start)
+    e = ensure_utc(end)
+    if s is None or e is None:
+        return 0.0
+    return max(0.0, (e - s).total_seconds() / 60.0)

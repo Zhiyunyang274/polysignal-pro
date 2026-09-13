@@ -192,8 +192,8 @@ class TestRunStatisticsControlGroup:
         assert stats.control_group_categories == {}
 
     def test_to_dict_includes_control_group(self):
-        from datetime import datetime
-        stats = RunStatistics(run_id="test", start_time=datetime.utcnow())
+        from datetime import datetime, timezone
+        stats = RunStatistics(run_id="test", start_time=datetime.now(timezone.utc))
         stats.control_group_samples = 5
         stats.control_group_unique_markets = 5
         d = stats.to_dict()

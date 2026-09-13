@@ -1,6 +1,7 @@
 """Tests for Trading MVP Step 9D cross-market convergence gating."""
 
 from __future__ import annotations
+from datetime import timezone
 
 import ast
 import csv
@@ -166,7 +167,7 @@ def test_non_converging_candidate_cannot_become_shadow_entry(tmp_path: Path):
 def test_output_jsonl_csv_summary_report_format(tmp_path: Path):
     rows = conv.apply_convergence_gate([candidate()], [obs("m1", 0.4, 0), obs("m1", 0.2, 1), obs("m1", 0.1, 2)], 3, 0.5)
     observations = [obs("m1", 0.4, 0), obs("m1", 0.2, 1), obs("m1", 0.1, 2)]
-    summary = conv.summary_from(__import__("datetime").datetime.utcnow(), [candidate()], observations, rows)
+    summary = conv.summary_from(__import__("datetime").datetime.now(__import__("datetime").timezone.utc), [candidate()], observations, rows)
     out = tmp_path / "runs"
 
     conv.write_jsonl(out / "cross_market_convergence_observations.jsonl", observations)

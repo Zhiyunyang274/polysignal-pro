@@ -18,7 +18,7 @@ Coverage:
 import asyncio
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -79,11 +79,11 @@ def mock_market():
         no_token_address="no_token_456",
         total_volume_usd=100000.0,
         volume_24h_usd=1000.0,
-        created_at=datetime.utcnow(),
-        close_time=datetime.utcnow() + timedelta(days=7),
+        created_at=datetime.now(timezone.utc),
+        close_time=datetime.now(timezone.utc) + timedelta(days=7),
         is_ambiguous=False,
         is_forbidden_auto=False,
-        fetched_at=datetime.utcnow(),
+        fetched_at=datetime.now(timezone.utc),
     )
 
 
@@ -93,7 +93,7 @@ def mock_orderbook():
     return OrderBookSnapshot(
         snapshot_id="test_snapshot",
         market_id="test_market_1",
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         yes_bids=OrderBookSide(levels=[PriceLevel(price=0.50, size=100.0, total_usd=50.0)]),
         yes_asks=OrderBookSide(levels=[PriceLevel(price=0.49, size=100.0, total_usd=49.0)]),
         no_bids=OrderBookSide(levels=[PriceLevel(price=0.50, size=100.0, total_usd=50.0)]),
@@ -127,7 +127,7 @@ class TestProcessSignalNoAwait:
         # Setup runner state
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         runner._ws_connected = True
         runner.db = MagicMock()
@@ -144,7 +144,7 @@ class TestProcessSignalNoAwait:
         # Create a signal
         signal = Signal(
             signal_id="sig_test",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             market_id="test_market_1",
             market_title="Test Market",
             market_category="crypto",
@@ -182,7 +182,7 @@ class TestRiskContextConstruction:
 
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         runner._ws_connected = True
         runner.db = MagicMock()
@@ -198,7 +198,7 @@ class TestRiskContextConstruction:
 
         signal = Signal(
             signal_id="sig_test",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             market_id="test_market_1",
             market_title="Test Market",
             market_category="crypto",
@@ -246,7 +246,7 @@ class TestRiskContextConstruction:
 
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         runner._ws_connected = True
         runner.db = MagicMock()
@@ -264,13 +264,13 @@ class TestRiskContextConstruction:
         stale_orderbook = OrderBookSnapshot(
             snapshot_id="stale_snapshot",
             market_id="test_market_1",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             is_stale=True,
         )
 
         signal = Signal(
             signal_id="sig_test",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             market_id="test_market_1",
             market_title="Test Market",
             market_category="crypto",
@@ -316,7 +316,7 @@ class TestRiskGovernorReceivesOrderbook:
 
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         runner._ws_connected = True
         runner.db = MagicMock()
@@ -332,7 +332,7 @@ class TestRiskGovernorReceivesOrderbook:
 
         signal = Signal(
             signal_id="sig_test",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             market_id="test_market_1",
             market_title="Test Market",
             market_category="crypto",
@@ -378,7 +378,7 @@ class TestRiskActionEnumBranches:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         runner._ws_connected = True
         runner.db = MagicMock()
@@ -401,7 +401,7 @@ class TestRiskActionEnumBranches:
 
         signal = Signal(
             signal_id="sig_test",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             market_id="test_market_1",
             market_title="Test Market",
             market_category="crypto",
@@ -435,7 +435,7 @@ class TestRiskActionEnumBranches:
 
         signal = Signal(
             signal_id="sig_test",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             market_id="test_market_1",
             market_title="Test Market",
             market_category="crypto",
@@ -469,7 +469,7 @@ class TestRiskActionEnumBranches:
 
         signal = Signal(
             signal_id="sig_test",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             market_id="test_market_1",
             market_title="Test Market",
             market_category="crypto",
@@ -503,7 +503,7 @@ class TestRiskActionEnumBranches:
 
         signal = Signal(
             signal_id="sig_test",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             market_id="test_market_1",
             market_title="Test Market",
             market_category="crypto",
@@ -538,7 +538,7 @@ class TestRiskActionEnumBranches:
 
         signal = Signal(
             signal_id="sig_test",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             market_id="test_market_1",
             market_title="Test Market",
             market_category="crypto",
@@ -586,7 +586,7 @@ class TestYesNoMispricingStrategyUsage:
         orderbook = OrderBookSnapshot(
             snapshot_id="test_snapshot",
             market_id="test_market_1",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             yes_bids=OrderBookSide(levels=[PriceLevel(price=0.50, size=100.0, total_usd=50.0)]),
             yes_asks=OrderBookSide(levels=[PriceLevel(price=0.48, size=100.0, total_usd=48.0)]),
             no_bids=OrderBookSide(levels=[PriceLevel(price=0.50, size=100.0, total_usd=50.0)]),
@@ -616,7 +616,7 @@ class TestYesNoMispricingStrategyUsage:
         orderbook = OrderBookSnapshot(
             snapshot_id="test_snapshot",
             market_id="test_market_1",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             yes_bids=OrderBookSide(levels=[PriceLevel(price=0.50, size=100.0, total_usd=50.0)]),
             yes_asks=OrderBookSide(levels=[PriceLevel(price=0.51, size=100.0, total_usd=51.0)]),
             no_bids=OrderBookSide(levels=[PriceLevel(price=0.49, size=100.0, total_usd=49.0)]),

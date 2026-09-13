@@ -26,7 +26,7 @@ IMPORTANT: This engine does NOT:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
 from polysignal.models.market import Market
@@ -38,6 +38,7 @@ from polysignal.models.wallet import (
     WalletSpecialization,
     WatchlistEntry,
 )
+from polysignal.utils.time import utc_now
 
 
 class WalletIntelligenceEngine:
@@ -326,7 +327,7 @@ class WalletIntelligenceEngine:
         flags = []
 
         # Check each activity for chase behavior
-        now = datetime.utcnow()
+        now = utc_now()
         for activity in recent_activities:
             # Check if activity is recent (within time window)
             time_diff = now - activity.timestamp

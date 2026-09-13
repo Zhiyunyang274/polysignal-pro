@@ -31,6 +31,7 @@ from polysignal.ingestion.reconnection_strategy import ReconnectionStrategy
 from polysignal.ingestion.subscription_manager import SubscriptionManager
 from polysignal.ingestion.websocket_message_handler import WSMessage, WSMessageHandler
 from polysignal.logging_config import get_logger
+from polysignal.utils.time import utc_now
 
 logger = get_logger("polysignal.ingestion.websocket_client")
 
@@ -308,7 +309,7 @@ class CLOBWebSocketClient:
 
                 # Handle pong
                 if message == "pong" or message == b"pong":
-                    self._last_pong = datetime.utcnow()
+                    self._last_pong = utc_now()
                     continue
 
                 # Parse JSON
@@ -325,7 +326,7 @@ class CLOBWebSocketClient:
                     # Handle pong in JSON
                     if isinstance(msg_data, dict):
                         if msg_data.get("type") == "pong" or msg_data.get("pong"):
-                            self._last_pong = datetime.utcnow()
+                            self._last_pong = utc_now()
                             continue
 
                         # Parse message
@@ -369,7 +370,7 @@ class CLOBWebSocketClient:
 
                 if self._ws and self._connected:
                     await self._ws.send("ping")
-                    self._last_ping = datetime.utcnow()
+                    self._last_ping = utc_now()
 
                     # Check pong timeout
                     if self._last_ping and self._last_pong:

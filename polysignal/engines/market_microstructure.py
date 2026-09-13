@@ -10,11 +10,11 @@ Responsibilities:
 - Calculate microstructure_score
 """
 
-from datetime import datetime
 from typing import Any
 
 from polysignal.models.orderbook import OrderBookSnapshot, OrderBookUpdate
 from polysignal.models.signal import ComponentScores
+from polysignal.utils.time import utc_now
 
 
 class MicrostructureResult:
@@ -37,7 +37,7 @@ class MicrostructureResult:
         self.is_mispriced = is_mispriced
         self.microstructure_score = microstructure_score
         self.liquidity_score = liquidity_score
-        self.timestamp = datetime.utcnow()
+        self.timestamp = utc_now()
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary"""

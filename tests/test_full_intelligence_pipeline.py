@@ -10,7 +10,7 @@ and Paper Trader. Validates that:
 - Live trading remains disabled
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -46,7 +46,7 @@ class TestFullIntelligencePipeline:
             status=MarketStatus.OPEN,
             total_volume_usd=500000,
             volume_24h_usd=200000,
-            close_time=datetime.utcnow() + timedelta(days=30),
+            close_time=datetime.now(timezone.utc) + timedelta(days=30),
             is_ambiguous=False,
         )
 
@@ -55,7 +55,7 @@ class TestFullIntelligencePipeline:
         """Create test orderbook with YES/NO mispricing"""
         return OrderBookSnapshot(
             market_id="pipeline_test_001",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             yes_bids=OrderBookSide(levels=[
                 PriceLevel(price=0.52, size=100.0, total_usd=100.0),
                 PriceLevel(price=0.51, size=200.0, total_usd=200.0),
@@ -455,7 +455,7 @@ class TestFullIntelligencePipeline:
             status=MarketStatus.CLOSED,
             total_volume_usd=500000,
             volume_24h_usd=200000,
-            close_time=datetime.utcnow() + timedelta(days=30),
+            close_time=datetime.now(timezone.utc) + timedelta(days=30),
         )
 
         signal = Signal(
@@ -495,7 +495,7 @@ class TestFullIntelligencePipeline:
             status=MarketStatus.OPEN,
             total_volume_usd=500000,
             volume_24h_usd=200000,
-            close_time=datetime.utcnow() + timedelta(days=30),
+            close_time=datetime.now(timezone.utc) + timedelta(days=30),
             is_ambiguous=True,
         )
 
@@ -536,7 +536,7 @@ class TestFullIntelligencePipeline:
             status=MarketStatus.OPEN,
             total_volume_usd=500000,
             volume_24h_usd=200000,
-            close_time=datetime.utcnow() + timedelta(days=30),
+            close_time=datetime.now(timezone.utc) + timedelta(days=30),
         )
 
         signal = Signal(

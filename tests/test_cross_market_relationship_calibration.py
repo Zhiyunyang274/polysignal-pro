@@ -1,6 +1,7 @@
 """Tests for Trading MVP Step 9B cross-market relationship calibration."""
 
 from __future__ import annotations
+from datetime import timezone
 
 import argparse
 import ast
@@ -179,7 +180,7 @@ def test_likely_false_match_rejected(tmp_path: Path):
 
 def test_output_csv_json_summary_report_format(tmp_path: Path):
     rows = [rel.calibrate_row(candidate(), args(tmp_path))]
-    summary = rel.summarize(__import__("datetime").datetime.utcnow(), rows)
+    summary = rel.summarize(__import__("datetime").datetime.now(__import__("datetime").timezone.utc), rows)
     output = tmp_path / "runs"
 
     rel.write_csv(output / "cross_market_edge_candidates_calibrated.csv", rows, rel.FIELDS)

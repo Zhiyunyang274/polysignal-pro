@@ -25,6 +25,7 @@ from polysignal.models.orderbook import (
     OrderBookUpdate,
     PriceLevel,
 )
+from polysignal.utils.time import utc_now
 
 logger = get_logger("polysignal.ingestion.data_converter")
 
@@ -267,7 +268,7 @@ class DataConverter:
             resolution_source=gamma_market.resolution_source,
             is_ambiguous=False,  # Will be set by Lifecycle Engine
             is_forbidden_auto=is_forbidden_auto,
-            fetched_at=datetime.utcnow(),
+            fetched_at=utc_now(),
         )
 
     @staticmethod
@@ -392,7 +393,7 @@ class DataConverter:
         snapshot = OrderBookSnapshot(
             snapshot_id=str(uuid4()),
             market_id=market_id,
-            timestamp=datetime.utcnow(),
+            timestamp=utc_now(),
             yes_bids=yes_bids,
             yes_asks=yes_asks,
             no_bids=no_bids,
@@ -423,7 +424,7 @@ class DataConverter:
         """
         update = OrderBookUpdate(
             market_id=market_id,
-            timestamp=datetime.utcnow(),
+            timestamp=utc_now(),
             source="clob",
         )
 

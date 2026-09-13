@@ -15,12 +15,13 @@ import csv
 import json
 import math
 from collections import Counter, defaultdict
-from datetime import datetime
 from pathlib import Path
 from statistics import mean
 from typing import Any
 
 import yaml
+
+from polysignal.utils.time import utc_now
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -384,7 +385,7 @@ def summarize(dataset: list[dict[str, Any]], high_confidence_threshold: float) -
         if safe_float(row.get("confidence")) >= high_confidence_threshold and safe_float(row.get("realized_return")) < 0
     )
     summary = {
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": utc_now().isoformat(),
         "trades_analyzed": len(closed),
         "edge_types_analyzed": sorted({str(row.get("edge_type") or "unknown") for row in closed}),
         "overall_win_rate": (len(wins) / len(closed)) if closed else 0.0,

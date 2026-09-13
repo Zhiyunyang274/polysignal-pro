@@ -4,7 +4,7 @@ from __future__ import annotations
 Test Fixtures - Mock markets
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from polysignal.models.market import Market, MarketCategory, MarketStatus
 
@@ -30,8 +30,8 @@ def create_mock_market(
         no_token_address="0x" + "2" * 40,
         total_volume_usd=total_volume_usd,
         volume_24h_usd=volume_24h_usd,
-        created_at=datetime.utcnow() - timedelta(days=10),
-        close_time=datetime.utcnow() + timedelta(days=30),
+        created_at=datetime.now(timezone.utc) - timedelta(days=10),
+        close_time=datetime.now(timezone.utc) + timedelta(days=30),
         resolution_source="test_source",
         resolution_criteria="Test criteria",
         is_ambiguous=is_ambiguous,

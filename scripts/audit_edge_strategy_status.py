@@ -10,10 +10,10 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from polysignal.utils.time import utc_now
 from scripts.discover_executable_edges import verify_safety
 
 REGISTRY_FIELDS = [
@@ -235,7 +235,7 @@ def build_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     for row in rows:
         by_status.setdefault(str(row.get("recommended_status")), []).append(str(row.get("edge_type")))
     return {
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": utc_now().isoformat(),
         "edge_types_reviewed": len(rows),
         "quarantined_edges": by_status.get("quarantined", []),
         "watch_only_edges": by_status.get("watch_only", []),

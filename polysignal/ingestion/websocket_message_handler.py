@@ -19,6 +19,7 @@ from datetime import UTC, datetime
 
 from polysignal.logging_config import get_logger
 from polysignal.models.orderbook import PriceLevel
+from polysignal.utils.time import utc_now
 
 logger = get_logger("polysignal.ingestion.websocket_message_handler")
 
@@ -82,7 +83,7 @@ class WSMessageHandler:
             if not token_id:
                 logger.debug("Orderbook message missing token_id")
                 return None
-            return WSMessageHandler._parse_snapshot(data, token_id, "book", datetime.utcnow())
+            return WSMessageHandler._parse_snapshot(data, token_id, "book", utc_now())
 
         # Determine message type
         msg_type = data.get("type") or data.get("channel") or data.get("event")

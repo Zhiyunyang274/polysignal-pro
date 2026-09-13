@@ -24,9 +24,10 @@ import json
 import os
 import sys
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+from polysignal.utils.time import utc_now
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -253,7 +254,7 @@ class IntelligenceAnalyzer:
         """Run full analysis"""
         summary = IntelligenceSummary(
             run_id=self.run_id,
-            analysis_timestamp=datetime.utcnow().isoformat(),
+            analysis_timestamp=utc_now().isoformat(),
             run_duration_minutes=self.summary.get("duration_minutes", 0),
             data_mode=self.summary.get("data_mode", "unknown"),
             llm_provider=self.summary.get("llm_provider", "unknown"),

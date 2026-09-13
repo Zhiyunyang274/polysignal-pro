@@ -4,7 +4,7 @@ Test Fixtures - Wallet test data
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from polysignal.ingestion.mock_wallet_provider import MOCK_WALLET_ADDRESSES
 from polysignal.models.market import Market, MarketCategory, MarketStatus
@@ -143,7 +143,7 @@ def create_wallet_market_activity(
 ) -> WalletMarketActivity:
     """Create a wallet market activity for testing"""
     if timestamp is None:
-        timestamp = datetime.utcnow() - timedelta(hours=1)
+        timestamp = datetime.now(timezone.utc) - timedelta(hours=1)
 
     return WalletMarketActivity(
         wallet_address=wallet_address,
@@ -158,7 +158,7 @@ def create_wallet_market_activity(
 
 def create_consensus_activities_yes() -> list[WalletMarketActivity]:
     """Create activities showing YES consensus"""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     return [
         create_wallet_market_activity(
             wallet_address=MOCK_WALLET_ADDRESSES["whale_1"],
@@ -183,7 +183,7 @@ def create_consensus_activities_yes() -> list[WalletMarketActivity]:
 
 def create_consensus_activities_mixed() -> list[WalletMarketActivity]:
     """Create activities showing mixed directions"""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     return [
         create_wallet_market_activity(
             wallet_address=MOCK_WALLET_ADDRESSES["whale_1"],
@@ -210,7 +210,7 @@ def create_wallet_market() -> Market:
         status=MarketStatus.OPEN,
         total_volume_usd=500000,
         volume_24h_usd=200000,
-        close_time=datetime.utcnow() + timedelta(days=30),
+        close_time=datetime.now(timezone.utc) + timedelta(days=30),
     )
 
 
@@ -224,7 +224,7 @@ def create_politics_market() -> Market:
         status=MarketStatus.OPEN,
         total_volume_usd=500000,
         volume_24h_usd=200000,
-        close_time=datetime.utcnow() + timedelta(days=30),
+        close_time=datetime.now(timezone.utc) + timedelta(days=30),
     )
 
 

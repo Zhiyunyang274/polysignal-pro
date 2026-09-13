@@ -19,6 +19,7 @@ from pathlib import Path
 from statistics import mean
 from typing import Any
 
+from polysignal.utils.time import utc_now
 from scripts.discover_cross_market_edges import (
     EDGE_TYPE,
     RELATIONSHIP_DUPLICATE,
@@ -408,7 +409,7 @@ def calibrate_rows(rows: list[dict[str, str]], args: argparse.Namespace) -> list
 
 
 def summarize(started: datetime, rows: list[dict[str, Any]]) -> dict[str, Any]:
-    ended = datetime.utcnow()
+    ended = utc_now()
     statuses = Counter(str(row.get("relationship_status") or "") for row in rows)
     actions = Counter(str(row.get("recommended_action") or "") for row in rows)
     groups = {str(row.get("group_id") or "") for row in rows if row.get("group_id")}
@@ -518,7 +519,7 @@ def print_summary(summary: dict[str, Any], dry_run: bool) -> None:
 
 
 def run(args: argparse.Namespace) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    started = datetime.utcnow()
+    started = utc_now()
     rows = load_csv(Path(args.runs_dir) / "cross_market_edge_candidates.csv")
     calibrated = calibrate_rows(rows, args)
     return calibrated, summarize(started, calibrated)

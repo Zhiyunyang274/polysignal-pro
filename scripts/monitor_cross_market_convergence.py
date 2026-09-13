@@ -24,6 +24,7 @@ import httpx
 
 from polysignal.ingestion.clob_client import CLOBReadOnlyClient
 from polysignal.shadow.cross_market_convergence import CrossMarketConvergenceObservation
+from polysignal.utils.time import utc_now
 from scripts.discover_cross_market_edges import EDGE_TYPE, mid_price, price_levels
 from scripts.discover_executable_edges import (
     TokenPair,
@@ -177,7 +178,7 @@ async def observe_candidate(
     gamma_client: Any,
     clob_client: Any,
 ) -> CrossMarketConvergenceObservation:
-    timestamp = datetime.utcnow().isoformat()
+    timestamp = utc_now().isoformat()
     mid = str(row.get("market_id") or "")
     ref_mid = str(row.get("reference_market_id") or "")
     relationship_confidence = safe_float(row.get("relationship_confidence"))
@@ -374,7 +375,7 @@ def summary_from(
     observations: list[CrossMarketConvergenceObservation],
     gated: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    ended = datetime.utcnow()
+    ended = utc_now()
     initial_gaps = [safe_float(row.get("initial_price_gap")) for row in gated if safe_float(row.get("initial_price_gap")) > 0]
     final_gaps = [safe_float(row.get("final_price_gap")) for row in gated if safe_float(row.get("final_price_gap")) > 0]
     changes = [safe_float(row.get("gap_change")) for row in gated if row.get("gap_change") not in (None, "")]
@@ -488,7 +489,7 @@ async def monitor_convergence(
     gamma_client: Any | None = None,
     clob_client: Any | None = None,
 ) -> tuple[list[CrossMarketConvergenceObservation], list[dict[str, Any]], dict[str, Any]]:
-    started = datetime.utcnow()
+    started = utc_now()
     output_dir = Path(args.output_dir)
     run_id = args.run_id or f"cross_market_convergence_{started.strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:8]}"
     rows = select_candidates(load_csv(output_dir / "cross_market_edge_candidates_calibrated.csv"), args.max_candidates)

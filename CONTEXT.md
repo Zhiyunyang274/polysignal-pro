@@ -75,6 +75,9 @@ Iteration log: docs/iteration_log.md (Iterations 000-023 complete, in order)
            balance (45/45) but adverse selection risk identified
   031      dynamic spread widening (vol_multiplier x volatility): mitigates
            adverse selection in crisis regimes; 19 tests / 1917 passed
+  032      v12 discovery blocked by Binance 451 (1 candidate, 0 positions);
+           merged expectancy final: 6 clusters / 17 closed / SAMPLE_INSUFFICIENT
+           (need 3 more closed, but externally blocked by Binance geo-restriction)
   032      MM + AccountState 3-tier integration verified (market/strategy
            exposure + consecutive losses fire correctly in MM context)
   033      Real-time lag detection built (one-touch barrier probability model,

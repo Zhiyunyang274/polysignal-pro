@@ -17,7 +17,7 @@ Coverage:
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -176,7 +176,7 @@ class TestIntelligenceSummary:
         """Test creating IntelligenceSummary"""
         summary = IntelligenceSummary(
             run_id="test_run",
-            analysis_timestamp=datetime.utcnow().isoformat(),
+            analysis_timestamp=datetime.now(timezone.utc).isoformat(),
             run_duration_minutes=240,
             data_mode="real_readonly",
             llm_provider="xfyun_anthropic",
@@ -189,7 +189,7 @@ class TestIntelligenceSummary:
         """Test IntelligenceSummary default values"""
         summary = IntelligenceSummary(
             run_id="test_run",
-            analysis_timestamp=datetime.utcnow().isoformat(),
+            analysis_timestamp=datetime.now(timezone.utc).isoformat(),
             run_duration_minutes=240,
             data_mode="real_readonly",
             llm_provider="xfyun_anthropic",

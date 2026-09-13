@@ -13,7 +13,6 @@ import argparse
 import csv
 import json
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +23,7 @@ import scripts.build_tradable_candidates as tradable_script
 import scripts.collect_shadow_forward_data as collector
 from polysignal.shadow.models import ShadowTrade
 from polysignal.shadow.reporter import write_shadow_positions_json, write_shadow_trades_csv
+from polysignal.utils.time import utc_now
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -499,7 +499,7 @@ def run_backfill(
     args: argparse.Namespace,
     api_client: Any | None = None,
 ) -> tuple[dict[str, Any], dict[str, str], list[ShadowTrade], list[dict[str, Any]]]:
-    started = datetime.utcnow()
+    started = utc_now()
     runs_dir = Path(args.runs_dir)
     shadow_dir = Path(args.shadow_dir)
     safety = verify_safety()
@@ -546,7 +546,7 @@ def run_backfill(
         "shadow_trades_with_tokens_csv": str(shadow_dir / "shadow_trades_with_tokens.csv"),
         "updated_shadow_positions_json": str(shadow_dir / "updated_shadow_positions.json"),
     }
-    ended = datetime.utcnow()
+    ended = utc_now()
     summary = {
         "started_at": started.isoformat(),
         "ended_at": ended.isoformat(),

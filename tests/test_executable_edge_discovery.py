@@ -1,6 +1,7 @@
 """Tests for Trading MVP Step 3 executable edge discovery."""
 
 from __future__ import annotations
+from datetime import timezone
 
 import argparse
 import ast
@@ -258,7 +259,7 @@ def test_output_csv_json_summary_format(tmp_path: Path):
         )
     ]
     summary = discovery.build_summary(
-        started=__import__("datetime").datetime.utcnow(),
+        started=__import__("datetime").datetime.now(__import__("datetime").timezone.utc),
         markets=[market()],
         markets_with_token_ids=1,
         orderbooks_fetched=2,

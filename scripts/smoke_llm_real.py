@@ -29,7 +29,6 @@ import argparse
 import asyncio
 import os
 import sys
-from datetime import datetime
 
 # Load .env file if available
 try:
@@ -52,6 +51,7 @@ from polysignal.llm.provider_router import ProviderRouter
 from polysignal.llm.schemas import EventAnalysisSchema, MarketRuleSchema
 from polysignal.llm.sensenova_provider import SenseNovaConfig, SenseNovaProvider
 from polysignal.llm.xfyun_anthropic_provider import XFyunAnthropicConfig, XFyunAnthropicProvider
+from polysignal.utils.time import utc_now
 
 
 def print_header(title: str) -> None:
@@ -161,7 +161,7 @@ Status: open
 Please analyze this market for event intelligence.
 """
 
-    start_time = datetime.utcnow()
+    start_time = utc_now()
 
     try:
         if provider_name == "router":
@@ -175,7 +175,7 @@ Please analyze this market for event intelligence.
                 response_schema=EventAnalysisSchema,
             )
 
-        latency = (datetime.utcnow() - start_time).total_seconds()
+        latency = (utc_now() - start_time).total_seconds()
 
         return {
             "success": response.success,
@@ -191,7 +191,7 @@ Please analyze this market for event intelligence.
         }
 
     except Exception as e:
-        latency = (datetime.utcnow() - start_time).total_seconds()
+        latency = (utc_now() - start_time).total_seconds()
         return {
             "success": False,
             "latency": latency,
@@ -209,7 +209,7 @@ Category: crypto
 Resolution Source: Binance API price feed
 """
 
-    start_time = datetime.utcnow()
+    start_time = utc_now()
 
     try:
         if provider_name == "router":
@@ -223,7 +223,7 @@ Resolution Source: Binance API price feed
                 response_schema=MarketRuleSchema,
             )
 
-        latency = (datetime.utcnow() - start_time).total_seconds()
+        latency = (utc_now() - start_time).total_seconds()
 
         return {
             "success": response.success,
@@ -237,7 +237,7 @@ Resolution Source: Binance API price feed
         }
 
     except Exception as e:
-        latency = (datetime.utcnow() - start_time).total_seconds()
+        latency = (utc_now() - start_time).total_seconds()
         return {
             "success": False,
             "latency": latency,
@@ -250,7 +250,7 @@ async def run_smoke_test(provider_type: str) -> dict:
     """Run smoke test for provider"""
     print_header("PolySignal Pro - Real LLM Smoke Test")
     print(f"Provider: {provider_type}")
-    print(f"Started: {datetime.utcnow().isoformat()}")
+    print(f"Started: {utc_now().isoformat()}")
 
     # Check API keys
     print_section("Step 1: Checking API keys")

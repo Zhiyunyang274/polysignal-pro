@@ -5,7 +5,7 @@ All tests use mock WebSocket - no real network connections.
 """
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -164,7 +164,7 @@ class TestCLOBWebSocketClient:
         msg = WSMessage(
             token_id="test_token",
             message_type="book",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             bids=[PriceLevel(price=0.5, size=100, total_usd=50)],
             asks=[PriceLevel(price=0.6, size=100, total_usd=60)],
         )
@@ -424,7 +424,7 @@ class TestWebSocketDisabledFallback:
 
         # Make stale
         cache = client.cache_manager.get_cache("yes_token")
-        cache.last_update_time = datetime.utcnow() - timedelta(seconds=120)
+        cache.last_update_time = datetime.now(timezone.utc) - timedelta(seconds=120)
 
         # Get orderbook should mark as stale
         snapshot = await client.get_orderbook(

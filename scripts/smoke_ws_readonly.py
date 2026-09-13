@@ -22,7 +22,6 @@ Environment:
 
 import asyncio
 import sys
-from datetime import datetime
 
 # Add project root to path
 sys.path.insert(0, ".")
@@ -32,6 +31,7 @@ from polysignal.ingestion.data_converter import DataConverter
 from polysignal.ingestion.gamma_client import GammaAPIClient
 from polysignal.ingestion.websocket_client import CLOBWebSocketClient, WebSocketConfig
 from polysignal.logging_config import get_logger, setup_logging
+from polysignal.utils.time import utc_now
 
 logger = get_logger("polysignal.smoke_ws_readonly")
 
@@ -60,7 +60,7 @@ def print_header():
     print("\n" + "=" * 60)
     print("PolySignal Pro - Real WebSocket Read-only Smoke Test")
     print("=" * 60)
-    print(f"Started: {datetime.utcnow().isoformat()}")
+    print(f"Started: {utc_now().isoformat()}")
     print("Mode: REAL_WEBSOCKET_READONLY")
     print("=" * 60 + "\n")
 

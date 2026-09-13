@@ -4,7 +4,7 @@ Test Fixtures - Event Intelligence test data
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from polysignal.models.event import (
     EventAssessment,
@@ -30,7 +30,7 @@ def create_event_market(
         status=MarketStatus.OPEN,
         total_volume_usd=500000,
         volume_24h_usd=200000,
-        close_time=datetime.utcnow() + timedelta(days=30),
+        close_time=datetime.now(timezone.utc) + timedelta(days=30),
         is_ambiguous=is_ambiguous,
     )
 

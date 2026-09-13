@@ -2,7 +2,7 @@
 Tests for OrderBook Cache
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from polysignal.ingestion.orderbook_cache import (
     OrderBookCacheManager,
@@ -117,7 +117,7 @@ class TestTokenOrderBookCache:
         cache.apply_update(bid_updates=[(0.5, 100)])
 
         # Manually set old timestamp
-        cache.last_update_time = datetime.utcnow() - timedelta(seconds=120)
+        cache.last_update_time = datetime.now(timezone.utc) - timedelta(seconds=120)
 
         assert cache.is_stale(threshold_seconds=60) is True
 
@@ -236,7 +236,7 @@ class TestOrderBookCacheManager:
         # Add cache and make it stale
         manager.apply_update("token_1", bid_updates=[(0.5, 100)])
         cache = manager.get_cache("token_1")
-        cache.last_update_time = datetime.utcnow() - timedelta(seconds=120)
+        cache.last_update_time = datetime.now(timezone.utc) - timedelta(seconds=120)
 
         # Add fresh cache
         manager.apply_update("token_2", bid_updates=[(0.5, 100)])

@@ -9,9 +9,7 @@ IMPORTANT:
 - Graceful fallback: If not configured, fallback to CLI/log mode
 - No trading: Telegram cannot trigger live trading
 """
-
 import os
-from datetime import datetime
 from typing import Any
 
 import structlog
@@ -23,6 +21,7 @@ from polysignal.models.telegram import (
     SystemPauseState,
     TelegramAction,
 )
+from polysignal.utils.time import utc_now
 
 logger = structlog.get_logger()
 
@@ -333,7 +332,7 @@ class TelegramClient:
 
         # Timestamp
         lines.append("")
-        lines.append(f"🕐 {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+        lines.append(f"🕐 {utc_now().strftime('%Y-%m-%d %H:%M:%S')} UTC")
 
         return "\n".join(lines)
 

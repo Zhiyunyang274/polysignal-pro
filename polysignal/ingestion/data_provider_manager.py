@@ -24,6 +24,7 @@ from polysignal.ingestion.mock_data_provider import MockDataProvider
 from polysignal.logging_config import get_logger
 from polysignal.models.market import Market, MarketList
 from polysignal.models.orderbook import OrderBookSnapshot
+from polysignal.utils.time import utc_now
 
 logger = get_logger("polysignal.ingestion.data_provider_manager")
 
@@ -114,7 +115,7 @@ class DataProviderManager:
         """Check if cache is still valid"""
         if self._cache_timestamp is None:
             return False
-        elapsed = (datetime.utcnow() - self._cache_timestamp).total_seconds()
+        elapsed = (utc_now() - self._cache_timestamp).total_seconds()
         return elapsed < self._cache_ttl_seconds
 
     async def get_markets(self) -> MarketList:
@@ -173,7 +174,7 @@ class DataProviderManager:
                         error=str(e),
                     )
 
-            self._cache_timestamp = datetime.utcnow()
+            self._cache_timestamp = utc_now()
 
             logger.info(
                 "Fetched markets from real API",
@@ -184,7 +185,7 @@ class DataProviderManager:
             return MarketList(
                 markets=markets,
                 total_count=len(markets),
-                fetched_at=datetime.utcnow(),
+                fetched_at=utc_now(),
             )
 
         except APIError:

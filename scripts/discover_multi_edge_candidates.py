@@ -34,6 +34,7 @@ from polysignal.shadow.feedback_gate import (
     FeedbackGateConfig,
     evaluate_edge_type_gate,
 )
+from polysignal.utils.time import utc_now
 from scripts.discover_executable_edges import (
     GammaActiveMarketClient,
     TokenPair,
@@ -469,7 +470,7 @@ async def discover_multi_edges(
     gamma_client: Any | None = None,
     clob_client: Any | None = None,
 ) -> tuple[list[EdgeCandidate], dict[str, Any]]:
-    started = datetime.utcnow()
+    started = utc_now()
     timestamp = started.isoformat()
     gamma = gamma_client or GammaActiveMarketClient()
     clob = clob_client or CLOBReadOnlyClient(max_retries=1)
@@ -549,7 +550,7 @@ def summarize(
     api_error_count: int,
     errors: list[dict[str, str]],
 ) -> dict[str, Any]:
-    ended = datetime.utcnow()
+    ended = utc_now()
     edge_type_counts: dict[str, int] = {}
     for candidate in candidates:
         edge_type_counts[candidate.edge_type.value] = edge_type_counts.get(candidate.edge_type.value, 0) + 1

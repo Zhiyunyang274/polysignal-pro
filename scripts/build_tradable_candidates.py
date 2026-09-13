@@ -11,7 +11,6 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +20,7 @@ from polysignal.shadow.tradable_candidates import (
     TradableCandidateBuilder,
     TradableCandidateBuilderConfig,
 )
+from polysignal.utils.time import utc_now
 
 TRADABLE_CANDIDATE_FIELDS = [
     "market_id",
@@ -195,7 +195,7 @@ def build(args: argparse.Namespace) -> tuple[list[TradableCandidate], dict[str, 
     )
     exclusion_summary = dict(builder.exclusion_summary.most_common())
     summary = {
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": utc_now().isoformat(),
         "runs_dir": str(runs_dir),
         "candidates_considered": builder.considered_count,
         "tradable_candidates": len(candidates),

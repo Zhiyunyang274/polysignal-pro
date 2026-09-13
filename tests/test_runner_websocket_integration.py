@@ -17,7 +17,7 @@ Coverage:
 import asyncio
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -81,11 +81,11 @@ def mock_market():
         no_token_address="no_token_456",
         total_volume_usd=1000.0,
         volume_24h_usd=100.0,
-        created_at=datetime.utcnow(),
-        close_time=datetime.utcnow() + timedelta(days=7),
+        created_at=datetime.now(timezone.utc),
+        close_time=datetime.now(timezone.utc) + timedelta(days=7),
         is_ambiguous=False,
         is_forbidden_auto=False,
-        fetched_at=datetime.utcnow(),
+        fetched_at=datetime.now(timezone.utc),
     )
 
 
@@ -97,7 +97,7 @@ def mock_market_list(mock_market):
         markets=[mock_market],
         total_count=1,
         source="test",
-        fetched_at=datetime.utcnow(),
+        fetched_at=datetime.now(timezone.utc),
     )
 
 
@@ -107,7 +107,7 @@ def mock_orderbook():
     return OrderBookSnapshot(
         snapshot_id="test_snapshot_1",
         market_id="test_market_1",
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         yes_bids=OrderBookSide(levels=[PriceLevel(price=0.50, size=100.0, total_usd=50.0)]),
         yes_asks=OrderBookSide(levels=[PriceLevel(price=0.51, size=100.0, total_usd=51.0)]),
         no_bids=OrderBookSide(levels=[PriceLevel(price=0.49, size=100.0, total_usd=49.0)]),
@@ -149,7 +149,7 @@ class TestWebSocketInitialization:
         """Test RunStatistics includes WebSocket subscription stats"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
             websocket_enabled=True,
         )
 
@@ -187,7 +187,7 @@ class TestTokenIDSubscription:
         runner._ws_connected = True
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
             websocket_enabled=True,
         )
 
@@ -230,7 +230,7 @@ class TestTokenIDSubscription:
         runner._ws_connected = True
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
             websocket_enabled=True,
         )
 
@@ -267,7 +267,7 @@ class TestTokenIDSubscription:
         runner._ws_connected = True
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
             websocket_enabled=True,
         )
 
@@ -286,7 +286,7 @@ class TestTokenIDSubscription:
         runner._ws_connected = True
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
             websocket_enabled=True,
         )
 
@@ -329,7 +329,7 @@ class TestWebSocketCacheFallback:
 
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
             websocket_enabled=True,
         )
 
@@ -363,21 +363,21 @@ class TestWebSocketCacheFallback:
             asks=[PriceLevel(price=0.51, size=100.0, total_usd=51.0)],
         )
         # Make it stale by setting old update time
-        yes_cache.last_update_time = datetime.utcnow() - timedelta(seconds=120)
+        yes_cache.last_update_time = datetime.now(timezone.utc) - timedelta(seconds=120)
 
         no_cache = TokenOrderBookCache(token_id="no_token_456")
         no_cache.apply_snapshot(
             bids=[PriceLevel(price=0.49, size=100.0, total_usd=49.0)],
             asks=[PriceLevel(price=0.50, size=100.0, total_usd=50.0)],
         )
-        no_cache.last_update_time = datetime.utcnow() - timedelta(seconds=120)
+        no_cache.last_update_time = datetime.now(timezone.utc) - timedelta(seconds=120)
 
         runner.ws_cache_manager._caches["yes_token_123"] = yes_cache
         runner.ws_cache_manager._caches["no_token_456"] = no_cache
 
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
             websocket_enabled=True,
         )
 
@@ -407,7 +407,7 @@ class TestWebSocketCacheFallback:
 
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
             websocket_enabled=True,
         )
 
@@ -437,7 +437,7 @@ class TestWebSocketCacheFallback:
 
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
             websocket_enabled=True,
         )
 
@@ -468,7 +468,7 @@ class TestWebSocketMessageHandling:
 
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
             websocket_enabled=True,
         )
 
@@ -476,7 +476,7 @@ class TestWebSocketMessageHandling:
         message = WSMessage(
             token_id="test_token",
             message_type="book",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             bids=[PriceLevel(price=0.50, size=100.0, total_usd=50.0)],
             asks=[PriceLevel(price=0.51, size=100.0, total_usd=51.0)],
         )
@@ -494,7 +494,7 @@ class TestWebSocketMessageHandling:
 
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
             websocket_enabled=True,
         )
 
@@ -503,7 +503,7 @@ class TestWebSocketMessageHandling:
             message = WSMessage(
                 token_id=f"test_token_{i}",
                 message_type="book",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 bids=[PriceLevel(price=0.50, size=100.0, total_usd=50.0)],
                 asks=[PriceLevel(price=0.51, size=100.0, total_usd=51.0)],
             )
@@ -573,7 +573,7 @@ class TestReportsIncludeWebSocketStats:
         """Test summary.json includes WebSocket stats"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
             websocket_enabled=True,
             websocket_subscriptions_attempted=20,
             websocket_subscriptions_active=18,
@@ -610,8 +610,8 @@ class TestReportsIncludeWebSocketStats:
 
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
-            end_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
+            end_time=datetime.now(timezone.utc),
             status="completed",
             websocket_enabled=True,
             websocket_subscriptions_attempted=20,

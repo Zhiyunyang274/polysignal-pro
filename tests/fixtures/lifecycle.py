@@ -4,7 +4,7 @@ Test Fixtures - Lifecycle test markets
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from polysignal.models.market import Market, MarketCategory, MarketStatus
 
@@ -22,7 +22,7 @@ def create_lifecycle_market(
     is_forbidden_auto: bool = False,
 ) -> Market:
     """Create a market for lifecycle testing"""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     if created_at is None:
         created_at = now - timedelta(days=10)
@@ -51,7 +51,7 @@ def create_lifecycle_market(
 
 def create_early_phase_market() -> Market:
     """Create a market in EARLY phase (< 10% time elapsed)"""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     return create_lifecycle_market(
         market_id="early_phase_001",
         title="Will Bitcoin reach $150,000 by end of year?",
@@ -62,7 +62,7 @@ def create_early_phase_market() -> Market:
 
 def create_mid_phase_market() -> Market:
     """Create a market in MID phase (10-80% time elapsed)"""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     return create_lifecycle_market(
         market_id="mid_phase_001",
         title="Will ETH price exceed $5000 this month?",
@@ -73,7 +73,7 @@ def create_mid_phase_market() -> Market:
 
 def create_late_phase_market() -> Market:
     """Create a market in LATE phase (80-95% time elapsed)"""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     return create_lifecycle_market(
         market_id="late_phase_001",
         title="Will the Fed raise rates next week?",
@@ -84,7 +84,7 @@ def create_late_phase_market() -> Market:
 
 def create_closing_phase_market() -> Market:
     """Create a market in CLOSING phase (> 95% time elapsed)"""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     return create_lifecycle_market(
         market_id="closing_phase_001",
         title="Will the game end in 5 minutes?",
@@ -149,7 +149,7 @@ def create_forbidden_category_market() -> Market:
 
 def create_no_close_time_market() -> Market:
     """Create a market without close_time"""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     return Market(
         market_id="no_close_time_001",
         title="Will this ever happen?",
@@ -171,7 +171,7 @@ def create_no_close_time_market() -> Market:
 
 def create_no_created_at_market() -> Market:
     """Create a market without created_at"""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     return Market(
         market_id="no_created_at_001",
         title="Will this market work?",

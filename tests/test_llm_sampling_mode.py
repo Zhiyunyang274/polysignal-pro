@@ -14,7 +14,7 @@ Coverage:
 
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
@@ -79,7 +79,7 @@ class TestRunStatisticsLLMSampling:
         """Test RunStatistics has llm_sampling_enabled field"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         assert hasattr(stats, "llm_sampling_enabled")
         assert stats.llm_sampling_enabled is False
@@ -88,7 +88,7 @@ class TestRunStatisticsLLMSampling:
         """Test RunStatistics has llm_sampling_calls_attempted field"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         assert hasattr(stats, "llm_sampling_calls_attempted")
         assert stats.llm_sampling_calls_attempted == 0
@@ -97,7 +97,7 @@ class TestRunStatisticsLLMSampling:
         """Test RunStatistics has llm_sampling_calls_succeeded field"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         assert hasattr(stats, "llm_sampling_calls_succeeded")
         assert stats.llm_sampling_calls_succeeded == 0
@@ -106,7 +106,7 @@ class TestRunStatisticsLLMSampling:
         """Test RunStatistics has llm_sampling_calls_failed field"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         assert hasattr(stats, "llm_sampling_calls_failed")
         assert stats.llm_sampling_calls_failed == 0
@@ -115,7 +115,7 @@ class TestRunStatisticsLLMSampling:
         """Test RunStatistics has sampled_markets_count field"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         assert hasattr(stats, "sampled_markets_count")
         assert stats.sampled_markets_count == 0
@@ -124,7 +124,7 @@ class TestRunStatisticsLLMSampling:
         """Test RunStatistics has sampled_markets_examples field"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         assert hasattr(stats, "sampled_markets_examples")
         assert stats.sampled_markets_examples == []
@@ -133,7 +133,7 @@ class TestRunStatisticsLLMSampling:
         """Test to_dict includes LLM sampling statistics"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.llm_sampling_enabled = True
         stats.llm_sampling_calls_attempted = 5
@@ -200,7 +200,7 @@ class TestSelectLLMSamplingCandidates:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
 
         result = runner._select_llm_sampling_candidates([], {})
@@ -224,7 +224,7 @@ class TestSelectLLMSamplingCandidates:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
 
         market = self._create_test_market("m1", status="CLOSED")
@@ -251,7 +251,7 @@ class TestSelectLLMSamplingCandidates:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
 
         # Note: is_auto_allowed() is no longer checked for LLM sampling
@@ -282,7 +282,7 @@ class TestSelectLLMSamplingCandidates:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
 
         market = self._create_test_market("m1", total_volume_usd=50000.0)  # Below threshold
@@ -309,7 +309,7 @@ class TestSelectLLMSamplingCandidates:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
 
         market = self._create_test_market("m1", is_ambiguous=True)
@@ -337,7 +337,7 @@ class TestSelectLLMSamplingCandidates:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
 
         market1 = self._create_test_market("m1", total_volume_usd=100000.0)
@@ -370,7 +370,7 @@ class TestSelectLLMSamplingCandidates:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
 
         market1 = self._create_test_market("m1", total_volume_usd=100000.0)
@@ -425,7 +425,7 @@ class TestPerformLLMSampling:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
 
         market = self._create_test_market()
@@ -455,7 +455,7 @@ class TestPerformLLMSampling:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         runner.stats.llm_calls_this_hour = 5  # Already at limit
 
@@ -489,7 +489,7 @@ class TestLLMSamplingNoTrading:
         """Test that LLM sampling statistics are separate from trading statistics"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
 
         # Set some trading stats
@@ -532,7 +532,7 @@ class TestReportIncludesLLMSampling:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         runner.stats.llm_sampling_enabled = True
         runner.stats.llm_sampling_calls_attempted = 5
@@ -564,7 +564,7 @@ class TestReportIncludesLLMSampling:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
 
         report = runner._generate_markdown_report()
@@ -641,7 +641,7 @@ class TestLLMSamplingDiversity:
         """Test RunStatistics has sampled_market_history field"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         assert hasattr(stats, "sampled_market_history")
         assert stats.sampled_market_history == {}
@@ -650,7 +650,7 @@ class TestLLMSamplingDiversity:
         """Test RunStatistics has unique_sampled_markets field"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         assert hasattr(stats, "unique_sampled_markets")
         assert stats.unique_sampled_markets == 0
@@ -659,7 +659,7 @@ class TestLLMSamplingDiversity:
         """Test RunStatistics has repeated_sampled_markets field"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         assert hasattr(stats, "repeated_sampled_markets")
         assert stats.repeated_sampled_markets == 0
@@ -668,7 +668,7 @@ class TestLLMSamplingDiversity:
         """Test to_dict includes diversity statistics"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.unique_sampled_markets = 5
         stats.repeated_sampled_markets = 2
@@ -730,11 +730,11 @@ class TestLLMSamplingDiversity:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
 
         # Add a recent sample to history (within cooldown)
-        runner.stats.sampled_market_history["m1"] = [datetime.utcnow()]
+        runner.stats.sampled_market_history["m1"] = [datetime.now(timezone.utc)]
 
         market1 = self._create_test_market("m1", total_volume_usd=100000.0)
         market2 = self._create_test_market("m2", total_volume_usd=100000.0)
@@ -768,12 +768,12 @@ class TestLLMSamplingDiversity:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
 
         # Add a sample from long ago (exceeds max repeats but outside cooldown)
         from datetime import timedelta
-        old_time = datetime.utcnow() - timedelta(hours=2)
+        old_time = datetime.now(timezone.utc) - timedelta(hours=2)
         runner.stats.sampled_market_history["m1"] = [old_time]
 
         market1 = self._create_test_market("m1", total_volume_usd=100000.0)
@@ -809,12 +809,12 @@ class TestLLMSamplingDiversity:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
 
         # m1 was sampled long ago (outside cooldown)
         from datetime import timedelta
-        old_time = datetime.utcnow() - timedelta(hours=2)
+        old_time = datetime.now(timezone.utc) - timedelta(hours=2)
         runner.stats.sampled_market_history["m1"] = [old_time]
 
         # m1 has higher volume but was sampled, m2 has lower volume but never sampled
@@ -850,12 +850,12 @@ class TestLLMSamplingDiversity:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
 
         # All markets recently sampled
-        runner.stats.sampled_market_history["m1"] = [datetime.utcnow()]
-        runner.stats.sampled_market_history["m2"] = [datetime.utcnow()]
+        runner.stats.sampled_market_history["m1"] = [datetime.now(timezone.utc)]
+        runner.stats.sampled_market_history["m2"] = [datetime.now(timezone.utc)]
 
         market1 = self._create_test_market("m1", total_volume_usd=100000.0)
         market2 = self._create_test_market("m2", total_volume_usd=100000.0)
@@ -874,11 +874,11 @@ class TestLLMSamplingDiversity:
         """Test that LLM sampling with diversity features still doesn't trigger trading"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
 
         # Simulate diversity tracking
-        stats.sampled_market_history["m1"] = [datetime.utcnow()]
+        stats.sampled_market_history["m1"] = [datetime.now(timezone.utc)]
         stats.unique_sampled_markets = 1
         stats.llm_sampling_strategy = "diversified"
 
@@ -915,7 +915,7 @@ class TestLLMSamplingDiversity:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         runner.stats.llm_sampling_enabled = True
         runner.stats.llm_sampling_strategy = "diversified"
@@ -939,7 +939,7 @@ class TestP95LatencyCalculation:
         """Test p95 with empty latency list"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         assert stats._calculate_p95_latency() is None
 
@@ -947,7 +947,7 @@ class TestP95LatencyCalculation:
         """Test p95 with single latency value"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.llm_latencies = [10.0]
         # For n < 20, should return max (the only value)
@@ -957,7 +957,7 @@ class TestP95LatencyCalculation:
         """Test p95 with small sample (n < 20)"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.llm_latencies = [10.0, 20.0, 30.0, 15.0, 25.0]
         # For n < 20, should return max (sorted max = 30.0)
@@ -967,7 +967,7 @@ class TestP95LatencyCalculation:
         """Test p95 with 18 samples (actual Phase 5D.3 case)"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         # Actual latencies from Phase 5D.3 run
         stats.llm_latencies = [
@@ -982,7 +982,7 @@ class TestP95LatencyCalculation:
         """Test p95 with exactly 20 samples"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.llm_latencies = list(range(1, 21))  # 1, 2, 3, ..., 20
         # For n = 20, p95 index = int(20 * 0.95) = 19
@@ -993,7 +993,7 @@ class TestP95LatencyCalculation:
         """Test p95 with 100 samples"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.llm_latencies = list(range(1, 101))  # 1, 2, 3, ..., 100
         # For n = 100, p95 index = int(100 * 0.95) = 95
@@ -1004,7 +1004,7 @@ class TestP95LatencyCalculation:
         """Test p95 with unsorted input"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.llm_latencies = [30.0, 10.0, 50.0, 20.0, 40.0]
         # Should sort first, then return max = 50.0
@@ -1014,7 +1014,7 @@ class TestP95LatencyCalculation:
         """Test p95 is included in to_dict output"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.llm_latencies = [10.0, 20.0, 30.0, 40.0, 50.0]
         result = stats.to_dict()
@@ -1029,7 +1029,7 @@ class TestLLMErrorTypeDistribution:
         """Test RunStatistics has LLM error type fields"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         assert hasattr(stats, "llm_sampling_server_error_count")
         assert hasattr(stats, "llm_sampling_connection_error_count")
@@ -1039,7 +1039,7 @@ class TestLLMErrorTypeDistribution:
         """Test error distribution with no errors"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         dist = stats._get_llm_error_type_distribution()
         assert dist["timeout"] == 0
@@ -1054,7 +1054,7 @@ class TestLLMErrorTypeDistribution:
         """Test error distribution with various errors"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.llm_sampling_timeout_count = 3
         stats.llm_sampling_invalid_json_count = 2
@@ -1072,7 +1072,7 @@ class TestLLMErrorTypeDistribution:
         """Test error distribution is included in to_dict"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.llm_sampling_server_error_count = 2
 
@@ -1088,7 +1088,7 @@ class TestAPIErrorDistribution:
         """Test RunStatistics has API error source fields"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         assert hasattr(stats, "api_error_llm_provider")
         assert hasattr(stats, "api_error_clob_rest")
@@ -1100,7 +1100,7 @@ class TestAPIErrorDistribution:
         """Test API error distribution with no errors"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         dist = stats._get_api_error_type_distribution()
         assert dist["llm_provider"] == 0
@@ -1114,7 +1114,7 @@ class TestAPIErrorDistribution:
         """Test API error distribution with various sources"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.api_error_llm_provider = 42
         stats.api_error_clob_rest = 2
@@ -1128,7 +1128,7 @@ class TestAPIErrorDistribution:
         """Test API error distribution is included in to_dict"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.api_error_llm_provider = 42
         stats.api_error_clob_rest = 2
@@ -1145,7 +1145,7 @@ class TestWebSocketReconnectSummary:
         """Test RunStatistics has WebSocket reconnect detail fields"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         assert hasattr(stats, "websocket_disconnects")
         assert hasattr(stats, "websocket_reconnect_successes")
@@ -1155,7 +1155,7 @@ class TestWebSocketReconnectSummary:
         """Test WebSocket reconnect summary calculation"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.websocket_disconnects = 15
         stats.websocket_reconnects = 14
@@ -1180,7 +1180,7 @@ class TestWebSocketReconnectSummary:
         """Test WebSocket reconnect summary is included in to_dict"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         stats.websocket_enabled = True
         stats.websocket_disconnects = 15
@@ -1213,7 +1213,7 @@ class TestReportIncludesNewMetrics:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         runner.stats.llm_sampling_enabled = True
         runner.stats.llm_sampling_server_error_count = 2
@@ -1241,7 +1241,7 @@ class TestReportIncludesNewMetrics:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         runner.stats.api_error_llm_provider = 42
         runner.stats.api_error_clob_rest = 2
@@ -1268,7 +1268,7 @@ class TestReportIncludesNewMetrics:
         runner = PaperTradingRunner(mock_config, run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
         )
         runner.stats.websocket_enabled = True
         runner.stats.websocket_disconnects = 15

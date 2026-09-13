@@ -22,6 +22,7 @@ from typing import Any
 from polysignal.ingestion.api_errors import CLOBError
 from polysignal.ingestion.api_types import CLOBOrderbook
 from polysignal.ingestion.clob_client import CLOBReadOnlyClient
+from polysignal.utils.time import utc_now
 from scripts.discover_executable_edges import (
     GammaActiveMarketClient,
     TokenPair,
@@ -333,7 +334,7 @@ async def discover_cross_market_edges(
     gamma_client: Any | None = None,
     clob_client: Any | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    started = datetime.utcnow()
+    started = utc_now()
     timestamp = started.isoformat()
     gamma = gamma_client or GammaActiveMarketClient()
     clob = clob_client or CLOBReadOnlyClient(max_retries=1)
@@ -402,7 +403,7 @@ def summarize(
     api_error_count: int,
     errors: list[dict[str, str]],
 ) -> dict[str, Any]:
-    ended = datetime.utcnow()
+    ended = utc_now()
     gaps = [safe_float(row.get("price_gap")) for row in rows]
     duplicate_groups = sum(1 for group in groups if group["relationship_type"] in {RELATIONSHIP_DUPLICATE, RELATIONSHIP_NEAR_DUPLICATE})
     mutex_groups = sum(1 for group in groups if group["relationship_type"] == RELATIONSHIP_MUTUALLY_EXCLUSIVE)

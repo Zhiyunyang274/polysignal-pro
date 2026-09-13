@@ -2,7 +2,7 @@
 Tests for Wallet Intelligence Engine
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -175,7 +175,7 @@ class TestWalletIntelligenceEngine:
         """Test consensus requires 66% same direction"""
         market = create_wallet_market()
         # 2 yes, 1 no = 66.7% yes (just above threshold)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         activities = [
             create_wallet_market_activity(
                 wallet_address=MOCK_WALLET_ADDRESSES["whale_1"],
@@ -253,7 +253,7 @@ class TestWalletIntelligenceEngine:
     def test_chase_risk_detection(self, engine: WalletIntelligenceEngine):
         """Test chase risk detection"""
         market = create_wallet_market()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # Activity at price 0.5, current price 0.55 (10% move)
         activities = [
@@ -273,7 +273,7 @@ class TestWalletIntelligenceEngine:
     def test_no_chase_risk_small_move(self, engine: WalletIntelligenceEngine):
         """Test no chase risk for small price moves"""
         market = create_wallet_market()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # Activity at price 0.5, current price 0.51 (2% move)
         activities = [
@@ -297,7 +297,7 @@ class TestWalletIntelligenceEngine:
     def test_timing_risk_rapid_entries(self, engine: WalletIntelligenceEngine):
         """Test timing risk for rapid sequential entries"""
         market = create_wallet_market()
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # 3 entries within 1 hour
         activities = [

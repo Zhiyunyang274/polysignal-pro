@@ -28,6 +28,7 @@ from polysignal.shadow.forward_observations import (
     TokenIdResolution,
 )
 from polysignal.shadow.models import ShadowSide, ShadowTrade, ShadowTradeStatus
+from polysignal.utils.time import utc_now
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -281,7 +282,7 @@ async def poll_once(
                 tokens,
                 yes_book,
                 no_book,
-                datetime.utcnow().isoformat(),
+                utc_now().isoformat(),
             )
             stale_count += 1 if observation.stale else 0
             if observation.error:
@@ -348,7 +349,7 @@ async def run_poll(
     config: PollConfig,
     clob_client: Any | None = None,
 ) -> dict[str, Any]:
-    started_at = datetime.utcnow()
+    started_at = utc_now()
     safety = verify_safety()
     positions = load_positions(config.shadow_dir)[: config.max_positions]
     resolver = ShadowTokenIdResolver(config.runs_dir, config.shadow_dir)
@@ -372,7 +373,7 @@ async def run_poll(
         for trade in positions:
             if not resolver.resolve(trade.market_id).complete:
                 summary["missing_token_id_count"] += 1
-        summary["ended_at"] = datetime.utcnow().isoformat()
+        summary["ended_at"] = utc_now().isoformat()
         summary["duration_seconds"] = (
             datetime.fromisoformat(summary["ended_at"]) - started_at
         ).total_seconds()
@@ -402,7 +403,7 @@ async def run_poll(
                 summary[key] += step_summary[key]
             summary["errors"].extend(step_summary["errors"])
 
-            if config.once or datetime.utcnow().timestamp() >= loop_deadline:
+            if config.once or utc_now().timestamp() >= loop_deadline:
                 break
             if summary["api_error_count"] >= config.max_api_errors:
                 break
@@ -417,7 +418,7 @@ async def run_poll(
         summary["updated_positions"] = bool(update_summary.get("updated"))
         summary["updated_outputs"] = update_summary
 
-    ended_at = datetime.utcnow()
+    ended_at = utc_now()
     summary["ended_at"] = ended_at.isoformat()
     summary["duration_seconds"] = (ended_at - started_at).total_seconds()
     write_poll_summary(config.shadow_dir / "forward_poll_summary.json", summary)

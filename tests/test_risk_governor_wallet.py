@@ -5,7 +5,7 @@ Tests the integration between Risk Governor and Wallet Intelligence Engine,
 particularly the dual safeguard for wallet_signal_only detection.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -446,7 +446,7 @@ class TestRiskGovernorWalletIntegration:
             status=MarketStatus.CLOSED,
             total_volume_usd=500000,
             volume_24h_usd=200000,
-            close_time=datetime.utcnow() + timedelta(days=30),
+            close_time=datetime.now(timezone.utc) + timedelta(days=30),
         )
 
         decision = governor.evaluate(signal, context, market=market)
@@ -477,7 +477,7 @@ class TestRiskGovernorWalletIntegration:
             status=MarketStatus.OPEN,
             total_volume_usd=500000,
             volume_24h_usd=200000,
-            close_time=datetime.utcnow() + timedelta(days=30),
+            close_time=datetime.now(timezone.utc) + timedelta(days=30),
             is_ambiguous=True,
         )
 
