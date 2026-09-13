@@ -80,6 +80,8 @@ class MarketMaker:
         fair_value: float,
         inventory: float = 0.0,
         volatility: float = 0.0,
+        external_signal: float | None = None,
+        signal_weight: float = 0.3,
     ) -> QuotePair:
         """Generate bid/ask quotes.
 
@@ -107,6 +109,12 @@ class MarketMaker:
         # measured recent price std as a fraction (e.g. 0.03 = 3% per step).
         vol_adj = cfg.vol_multiplier * max(0.0, volatility)
         half_spread *= 1.0 + vol_adj
+
+        # External signal blending (Iteration 034): when RealTimeMonitor detects
+        # a lag, the external-signal probability is more accurate than the
+        # orderbook mid. Blend it into the fair value to correct quotes.
+        if external_signal is not None and isfinite(external_signal) and 0 <= external_signal <= 1:
+            fair_value = fair_value * (1 - signal_weight) + external_signal * signal_weight
 
         # Inventory skew: positive inventory (long YES) → shift quotes DOWN
         # to make bids less attractive and asks more attractive, encouraging
