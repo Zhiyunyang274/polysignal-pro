@@ -9,13 +9,14 @@ identical. RunConfig/stats/provider/logger state is accessed via `self`.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from polysignal.models.market import Market
 from polysignal.models.orderbook import OrderBookSnapshot
 from polysignal.models.signal import ComponentScores, Signal
 from polysignal.strategies.base import StrategyContext
+from polysignal.utils.time import utc_now
 
 
 class LLMSamplingMixin:
@@ -70,7 +71,7 @@ class LLMSamplingMixin:
             result = await self._perform_llm_sampling(market, orderbook)
 
             # Update sampling history
-            now = datetime.utcnow()
+            now = utc_now()
             if market.market_id not in self.stats.sampled_market_history:
                 self.stats.sampled_market_history[market.market_id] = []
                 self.stats.unique_sampled_markets += 1
@@ -231,7 +232,7 @@ class LLMSamplingMixin:
             List of (market, orderbook) tuples for LLM sampling
         """
         candidates = []
-        now = datetime.utcnow()
+        now = utc_now()
         cooldown_delta = timedelta(minutes=self.run_config.llm_sampling_cooldown_minutes)
 
         for market in markets:

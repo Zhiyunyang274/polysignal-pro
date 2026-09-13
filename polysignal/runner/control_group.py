@@ -9,11 +9,11 @@ from __future__ import annotations
 
 import csv
 import json
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from polysignal.models.market import Market
 from polysignal.models.orderbook import OrderBookSnapshot
+from polysignal.utils.time import utc_now
 
 
 class ControlGroupMixin:
@@ -175,7 +175,7 @@ class ControlGroupMixin:
                 "suggested_mode": result.get("suggested_mode"),
                 "confidence": result.get("confidence"),
                 "success": result.get("success", False),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": utc_now().isoformat(),
             }
             self._control_group_samples.append(sample)
 

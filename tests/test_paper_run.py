@@ -19,7 +19,7 @@ Coverage:
 import json
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -229,7 +229,7 @@ class TestConservativeDefaultConfig:
 
     def test_run_statistics_defaults(self):
         """Test RunStatistics has safe defaults"""
-        stats = RunStatistics(run_id="test_run", start_time=datetime.utcnow())
+        stats = RunStatistics(run_id="test_run", start_time=datetime.now(UTC))
 
         assert stats.status == "running"
         assert stats.end_time is None
@@ -317,8 +317,8 @@ class TestReportFileCreation:
             # Initialize stats
             runner.stats = RunStatistics(
                 run_id="test_run_001",
-                start_time=datetime.utcnow(),
-                end_time=datetime.utcnow(),
+                start_time=datetime.now(UTC),
+                end_time=datetime.now(UTC),
                 status="completed",
             )
             # Set duration fields dynamically
@@ -364,8 +364,8 @@ class TestReportFileCreation:
 
         runner.stats = RunStatistics(
             run_id="test_run_002",
-            start_time=datetime.utcnow(),
-            end_time=datetime.utcnow() + timedelta(minutes=30),
+            start_time=datetime.now(UTC),
+            end_time=datetime.now(UTC) + timedelta(minutes=30),
             status="completed",
             markets_checked=50,
             signals_generated=10,
@@ -398,8 +398,8 @@ class TestRateLimits:
 
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
-            hour_start=datetime.utcnow() - timedelta(hours=1),
+            start_time=datetime.now(UTC),
+            hour_start=datetime.now(UTC) - timedelta(hours=1),
             llm_calls_this_hour=10,
             signals_this_hour=20,
             telegram_messages_this_hour=5,
@@ -417,8 +417,8 @@ class TestRateLimits:
 
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
-            hour_start=datetime.utcnow() - timedelta(minutes=30),
+            start_time=datetime.now(UTC),
+            hour_start=datetime.now(UTC) - timedelta(minutes=30),
             llm_calls_this_hour=10,
             signals_this_hour=20,
             telegram_messages_this_hour=5,
@@ -437,7 +437,7 @@ class TestRateLimits:
 
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             signals_this_hour=5,  # At limit
         )
 
@@ -540,7 +540,7 @@ class TestGracefulShutdown:
         # Initialize stats
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
         )
         runner.stats.duration_minutes = 30
 
@@ -588,7 +588,7 @@ class TestAPIFallback:
         """Test statistics track API fallbacks"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             api_fallbacks=5,
         )
         stats.duration_minutes = 30
@@ -626,8 +626,8 @@ class TestNoLiveTradingPath:
         runner = PaperTradingRunner(mock_config, conservative_run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
-            end_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
+            end_time=datetime.now(UTC),
         )
         runner.stats.duration_minutes = 30
         runner.stats.duration_hours = 0.5
@@ -666,8 +666,8 @@ class TestNoPrivateKeyRequirement:
         runner = PaperTradingRunner(mock_config, conservative_run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
-            end_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
+            end_time=datetime.now(UTC),
         )
         runner.stats.duration_minutes = 30
         runner.stats.duration_hours = 0.5
@@ -708,7 +708,7 @@ class TestRunStatistics:
         """Test LLM average latency calculation"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             llm_latencies=[1.0, 2.0, 3.0],
         )
         stats.duration_minutes = 30
@@ -721,7 +721,7 @@ class TestRunStatistics:
         """Test LLM average latency with no data"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             llm_latencies=[],
         )
         stats.duration_minutes = 30
@@ -787,7 +787,7 @@ class TestRealDataIntegration:
         """Test RunStatistics tracks real_markets_fetched"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             real_markets_fetched=100,
             orderbooks_fetched=50,
         )
@@ -805,7 +805,7 @@ class TestRealDataIntegration:
         """Test mock mode doesn't count as real markets"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             data_mode="mock",
         )
         stats.duration_minutes = 30
@@ -828,7 +828,7 @@ class TestRealDataIntegration:
         """Test API errors are tracked"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             api_errors=5,
         )
         stats.duration_minutes = 30
@@ -842,7 +842,7 @@ class TestRealDataIntegration:
         """Test fallback count is tracked"""
         stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             api_fallbacks=3,
         )
         stats.duration_minutes = 30
@@ -861,7 +861,7 @@ class TestRealDataIntegration:
         # Initialize stats for logging
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
         )
         runner.run_dir = Path("runs") / "test_run"
         runner.run_dir.mkdir(parents=True, exist_ok=True)
@@ -898,7 +898,7 @@ class TestRealDataIntegration:
         # Initialize stats for logging
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             data_mode="real_readonly",
         )
         runner.run_dir = Path("runs") / "test_run_real"
@@ -926,8 +926,8 @@ class TestRealDataIntegration:
         runner = PaperTradingRunner(mock_config, conservative_run_config)
         runner.stats = RunStatistics(
             run_id="test_run",
-            start_time=datetime.utcnow(),
-            end_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
+            end_time=datetime.now(UTC),
             real_markets_fetched=150,
             orderbooks_fetched=75,
         )

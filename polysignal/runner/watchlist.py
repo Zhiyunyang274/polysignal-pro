@@ -9,11 +9,11 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from polysignal.models.market import Market
+from polysignal.utils.time import utc_now
 
 # =============================================================================
 # Phase 5F.5 — Watchlist-Driven Monitoring
@@ -607,7 +607,7 @@ class TrajectoryTracker:
         if not self.track_enabled:
             return None
 
-        now = datetime.utcnow().isoformat()
+        now = utc_now().isoformat()
 
         # Create observation
         observation = TrajectoryObservation(
@@ -710,7 +710,7 @@ class TrajectoryTracker:
             }
 
         return {
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": utc_now().isoformat(),
             "markets_updated": list(self._updates.keys()),
             "new_observations_count": len(self._updates),
             "changes_detected": len(self._changes),

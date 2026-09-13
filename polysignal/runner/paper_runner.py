@@ -10,7 +10,7 @@ import asyncio
 import json
 import signal
 import uuid
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -68,6 +68,7 @@ from polysignal.storage.database import Database
 
 # Strategy
 from polysignal.strategies.yes_no_mispricing import YesNoMispricingStrategy
+from polysignal.utils.time import utc_now
 
 
 class PaperTradingRunner(LLMSamplingMixin, ControlGroupMixin, AlphaRepeatMixin):
@@ -159,7 +160,7 @@ class PaperTradingRunner(LLMSamplingMixin, ControlGroupMixin, AlphaRepeatMixin):
         run_id = self._generate_run_id()
         self.stats = RunStatistics(
             run_id=run_id,
-            start_time=datetime.utcnow(),
+            start_time=utc_now(),
             data_mode=self.run_config.data_mode,
             llm_provider=self.run_config.llm_provider,
             websocket_enabled=self.run_config.use_websocket,
@@ -172,7 +173,7 @@ class PaperTradingRunner(LLMSamplingMixin, ControlGroupMixin, AlphaRepeatMixin):
         )
         self.stats.duration_minutes = self.run_config.duration_minutes
         self.stats.duration_hours = self.run_config.duration_hours
-        self.stats.hour_start = datetime.utcnow()
+        self.stats.hour_start = utc_now()
         self.stats.llm_sampling_enabled = self.run_config.enable_llm_sampling
         self.stats.llm_sampling_strategy = self.run_config.llm_sampling_strategy
         self.stats.llm_sampling_cooldown_minutes = self.run_config.llm_sampling_cooldown_minutes
@@ -214,7 +215,7 @@ class PaperTradingRunner(LLMSamplingMixin, ControlGroupMixin, AlphaRepeatMixin):
         except Exception as e:
             self._log_event("run_error", "error", f"Run error: {e}")
             self.stats.errors.append({
-                "time": datetime.utcnow().isoformat(),
+                "time": utc_now().isoformat(),
                 "type": "run_error",
                 "message": str(e),
             })
@@ -523,7 +524,7 @@ class PaperTradingRunner(LLMSamplingMixin, ControlGroupMixin, AlphaRepeatMixin):
 
     def _generate_run_id(self) -> str:
         """Generate unique run ID"""
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        timestamp = utc_now().strftime("%Y%m%d_%H%M%S")
         short_uuid = uuid.uuid4().hex[:8]
         return f"run_{timestamp}_{short_uuid}"
 
@@ -541,7 +542,7 @@ class PaperTradingRunner(LLMSamplingMixin, ControlGroupMixin, AlphaRepeatMixin):
         """Main run loop"""
         if self.stats is None:
             return
-        end_time = datetime.utcnow() + timedelta(minutes=self.run_config.duration_minutes)
+        end_time = utc_now() + timedelta(minutes=self.run_config.duration_minutes)
 
         # Start WebSocket connection if enabled
         if self.ws_client and self.run_config.use_websocket:
@@ -552,14 +553,14 @@ class PaperTradingRunner(LLMSamplingMixin, ControlGroupMixin, AlphaRepeatMixin):
             else:
                 self._log_event("websocket_connect_failed", "websocket", "WebSocket connection failed, using REST fallback")
 
-        while datetime.utcnow() < end_time and not self._shutdown_requested:
+        while utc_now() < end_time and not self._shutdown_requested:
             self._scan_count += 1
 
             # Check hourly rate limits
             self._check_hourly_limits()
 
             # Run scan
-            scan_start = datetime.utcnow()
+            scan_start = utc_now()
             scan_id = f"{self.stats.run_id}_scan_{self._scan_count}"
 
             try:
@@ -567,23 +568,23 @@ class PaperTradingRunner(LLMSamplingMixin, ControlGroupMixin, AlphaRepeatMixin):
             except Exception as e:
                 self._log_event("scan_error", "error", f"Scan error: {e}")
                 self.stats.errors.append({
-                    "time": datetime.utcnow().isoformat(),
+                    "time": utc_now().isoformat(),
                     "type": "scan_error",
                     "message": str(e),
                 })
 
-            scan_latency = (datetime.utcnow() - scan_start).total_seconds()
+            scan_latency = (utc_now() - scan_start).total_seconds()
 
             # Print progress
-            remaining = (end_time - datetime.utcnow()).total_seconds() / 60
+            remaining = (end_time - utc_now()).total_seconds() / 60
             self._print_progress(remaining, scan_latency)
 
             # Wait for next scan
-            if datetime.utcnow() < end_time and not self._shutdown_requested:
+            if utc_now() < end_time and not self._shutdown_requested:
                 await asyncio.sleep(self.run_config.scan_interval_seconds)
 
         # Set end time
-        self.stats.end_time = datetime.utcnow()
+        self.stats.end_time = utc_now()
         self.stats.status = "completed" if not self._shutdown_requested else "shutdown"
 
     async def _run_scan(self, scan_id: str) -> None:
@@ -782,7 +783,7 @@ class PaperTradingRunner(LLMSamplingMixin, ControlGroupMixin, AlphaRepeatMixin):
             return
 
         event = {
-            "event_time": datetime.utcnow().isoformat(),
+            "event_time": utc_now().isoformat(),
             "event_type": "watchlist_scan",
             "market_id": market.market_id,
             "question": market.title[:200] if market.title else None,
@@ -801,12 +802,12 @@ class PaperTradingRunner(LLMSamplingMixin, ControlGroupMixin, AlphaRepeatMixin):
         if self.stats is None:
             return
         if self.stats.hour_start:
-            hour_elapsed = (datetime.utcnow() - self.stats.hour_start).total_seconds() >= 3600
+            hour_elapsed = (utc_now() - self.stats.hour_start).total_seconds() >= 3600
             if hour_elapsed:
                 self.stats.llm_calls_this_hour = 0
                 self.stats.signals_this_hour = 0
                 self.stats.telegram_messages_this_hour = 0
-                self.stats.hour_start = datetime.utcnow()
+                self.stats.hour_start = utc_now()
                 self._log_event("hour_reset", "rate_limit", "Hourly rate limits reset")
 
     async def _save_run_start(self) -> None:
@@ -857,7 +858,7 @@ class PaperTradingRunner(LLMSamplingMixin, ControlGroupMixin, AlphaRepeatMixin):
             (
                 scan_id,
                 self.stats.run_id,
-                datetime.utcnow().isoformat(),
+                utc_now().isoformat(),
                 markets_scanned,
                 signals_generated,
                 self.run_config.data_mode,
@@ -928,7 +929,7 @@ class PaperTradingRunner(LLMSamplingMixin, ControlGroupMixin, AlphaRepeatMixin):
         event = {
             "event_id": f"{self.stats.run_id}_event_{uuid.uuid4().hex[:8]}",
             "run_id": self.stats.run_id,
-            "event_time": datetime.utcnow().isoformat(),
+            "event_time": utc_now().isoformat(),
             "event_type": event_type,
             "event_category": event_category,
             "description": description,
@@ -1414,7 +1415,7 @@ class PaperTradingRunner(LLMSamplingMixin, ControlGroupMixin, AlphaRepeatMixin):
         if self.run_config.use_websocket:
             ws_status = f"WS: {self.stats.websocket_messages} | "
 
-        print(f"\r[{datetime.utcnow().strftime('%H:%M:%S')}] "
+        print(f"\r[{utc_now().strftime('%H:%M:%S')}] "
               f"Scan #{self._scan_count} | "
               f"Markets: {self.stats.markets_checked} | "
               f"OBs: {self.stats.orderbooks_fetched} | "

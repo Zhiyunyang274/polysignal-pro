@@ -1574,3 +1574,107 @@ I will not modify:
 完全避免了损失。**做市/选择性入场模式优于无条件方向性入场。**
 
 ---
+
+---
+
+## Iteration 025 最终条目 — 三 cohort 合并 expectancy 判定（2026-09-13）
+
+**数据来源**：v7_reeval + v10 + v11（三 cohort 的 validation summary，全部真实前向数据）
+
+**合并判定（cluster_expectancy 工具输出）**：
+
+```json
+{
+  "total_positions": 23,
+  "closed_positions": 17,
+  "insufficient_positions": 6,
+  "wins": 1,
+  "win_rate": 0.0588,
+  "independent_cluster_count": 6,
+  "cluster_assets": ["ETH", "SOL", "XRP", "DOGE", "BNB", "BTC"],
+  "meets_5_clusters": true,
+  "meets_20_closed": false,
+  "verdict": "SAMPLE_INSUFFICIENT"
+}
+```
+
+**判定解读**：
+
+| 前置条件 | 要求 | 实际 | 状态 |
+|---------|------|------|------|
+| 独立 clusters | ≥ 5 | **6** | **✓ 满足** |
+| closed 样本 | ≥ 20 | **17** | **✗ 不足** |
+
+**方向性证据**（17 笔 closed 中 1 赢 16 亏 = **5.88% 胜率**）：
+
+| cohort | closed | wins | avg_return |
+|--------|--------|------|-----------|
+| v7_reeval | 6 | 1 | -21.9% |
+| v10 | 4 | 0 | -7.2% |
+| v11 | 7 | 0 | -9.4% |
+| **合并** | **17** | **1** | **-13.9%** |
+
+**结论（按契约）**：
+1. cluster 前置首次满足（6 ≥ 5），但 closed 样本不足（17 < 20）
+2. **现有 17 笔的证据方向已明确**：5.88% 胜率跨 6 资产，每个 cohort 均负收益
+3. crypto_price_threshold_v1 已在 Iteration 026 中正式 quarantined
+4. **继续扩 cohort 的边际价值极低**：即使 closed 达 20，5.88% 胜率的
+   结论几乎不会改变。更有价值的方向是承认该 edge 类型的负期望证据已充分
+5. v13 pipeline 后台运行中（3000 市场 discovery），完成后如产出新 closed
+   样本将自动纳入合并判定
+
+**收益变化**：无（shadow 研究）
+**风险变化**：不变
+**是否保留**：✅ 保留
+
+---
+
+## Iteration 026-033（已记录，见上方对应条目）
+
+- Iteration 026: crypto_price_threshold_v1 正式降级 quarantined
+- Iteration 027: stale_price_lag 否定性结论（0 近屏障市场）
+- Iteration 028: ATH 解析 bug 修复
+- Iteration 029: 做市模式基础（ADR-030）+ MarketMaker + InventoryTracker
+- Iteration 030: MM 五环境压测（全不变量 PASS）
+- Iteration 031: MM+SimBroker 集成（五环境 PnL 验证，做市优于方向性）
+- Iteration 032: MM+AccountState 三级限制集成验证
+- Iteration 033: 实时监控基础设施（RealTimeMonitor lag 检测）
+- Iteration 033b: A/B 正式对比（barrier-proximity KEEP_ELIGIBLE）
+
+---
+
+## Iteration 034+ — 当前状态与待办
+
+1. **[后台运行中] v13 全管线**：3000 市场 discovery（~3h）→ validate → 240min → poll → merge
+2. **[已完成] 合并 expectancy**：6 clusters / 17 closed / SAMPLE_INSUFFICIENT
+3. **[待用户决策] 后续方向**：
+   a. 继续 v13+v14+ 扩 cohort 至 closed ≥ 20（每轮 ~4-8 closed，需 1-2 轮）
+   b. 转向做市模式实时监控（RealTimeMonitor + MarketMaker 深度集成）
+   c. 新 edge 类型搜索
+4. **维护循环**：三门棘轮持续（1932 passed / ruff 0 / mypy 0）
+
+---
+
+---
+
+## Iteration 034 — D8 timezone-aware 第二批：runner 包迁移（2026-09-13）
+
+**声明修改范围**：
+
+```text
+I will modify:
+- polysignal/runner/ 全部 5 个文件（24 处 naive utcnow → aware utc_now）
+- tests/test_paper_run.py（测试 fixture 同步迁移）
+
+I will not modify:
+- scripts/ 层（后续批次）；SQLite 存储格式
+```
+
+**实验结果**：
+- runner/ 包 24 处 naive datetime 全部迁移为 timezone-aware UTC
+- 全量回归：1932 passed 零回退
+- mypy 96 files 0 / ruff 全绿
+
+**是否保留**：✅ 保留（D8 第二批完成）
+
+---

@@ -8,13 +8,13 @@ the runner methods unchanged; PaperTradingRunner inherits them.
 from __future__ import annotations
 
 import json
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from polysignal.models.market import Market
 from polysignal.models.orderbook import OrderBookSnapshot
 from polysignal.models.risk import RiskAction, RiskContext, RiskDecision
 from polysignal.models.signal import Signal
+from polysignal.utils.time import utc_now
 
 
 class AlphaRepeatMixin:
@@ -251,7 +251,7 @@ class AlphaRepeatMixin:
         except Exception as e:
             self._log_event("paper_trade_error", "error", f"Paper trade error: {e}")
             self.stats.errors.append({
-                "time": datetime.utcnow().isoformat(),
+                "time": utc_now().isoformat(),
                 "type": "paper_trade_error",
                 "message": str(e),
             })
