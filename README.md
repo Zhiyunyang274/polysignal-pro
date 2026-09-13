@@ -4,7 +4,8 @@
   <p>Observe public market data, explain candidate signals, and validate hypotheses under explicit risk controls.</p>
   <p>
     <a href="https://github.com/Zhiyunyang274/polysignal-pro/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-0f766e?style=flat-square" alt="MIT License" /></a>
-    <img src="https://img.shields.io/badge/Python-3.9%2B-3776ab?style=flat-square&logo=python&logoColor=white" alt="Python 3.9 or later" />
+    <img src="https://img.shields.io/badge/Python-3.11%2B-3776ab?style=flat-square&logo=python&logoColor=white" alt="Python 3.11 or later" />
+    <img src="https://img.shields.io/badge/Tests-1898%20passed-16a34a?style=flat-square" alt="1898 tests passed" />
     <img src="https://img.shields.io/badge/Mode-read--only%20%2B%20paper-0f766e?style=flat-square" alt="Read-only and paper trading" />
     <img src="https://img.shields.io/badge/Live%20trading-disabled-991b1b?style=flat-square" alt="Live trading disabled" />
   </p>
@@ -38,6 +39,7 @@ flowchart LR
     F --> G["Log and alert"]
     F --> H["Deterministic paper trade"]
     F --> I["Manual review"]
+    F --> J["Account ledger & circuit breaker"]
 ```
 
 The fast market-data path remains lightweight: it does not call an LLM or make slow external requests. LLM output is structured research input only; it cannot place an order.
@@ -49,9 +51,11 @@ The fast market-data path remains lightweight: it does not call an LLM or make s
 | Data ingestion | Mock, public Gamma/CLOB REST, and read-only WebSocket sources | Public data only; errors degrade safely instead of stopping the system. |
 | Market structure | Spread, depth, orderbook imbalance, and YES/NO combined-price checks | A candidate signal is not a trade recommendation. |
 | Intelligence | Wallet behavior, event assessment, resolution semantics, and lifecycle checks | Wallet and LLM signals are supporting inputs, never sole execution reasons. |
-| Risk governance | Hard rejections, exposure limits, liquidity gates, stale-data checks, and circuit breakers | Hard rejections take priority over scores. |
-| Research execution | Deterministic paper trader, SQLite records, CLI, Telegram alerts, dashboards, and a local web console | The live trader remains a stub. |
-| Shadow validation | Run-scoped price, provenance, execution-cost, and forward-observation artifacts | Incomplete evidence fails closed and is not converted into PnL. |
+| Risk governance | Hard rejections, three-tier exposure limits, liquidity gates, circuit breakers, and a real account ledger | Hard rejections take priority over scores. Loss breakers (daily/weekly/consecutive) fire on real state. |
+| Research execution | Deterministic paper trader, SimBroker (fees + L2 depth + latency + fault injection), SQLite records, CLI, Telegram alerts, dashboards, and a local web console | The live trader remains a stub. |
+| Shadow validation | Run-scoped price, provenance, execution-cost, and forward-observation artifacts with cluster-level expectancy merging | Incomplete evidence fails closed and is not converted into PnL. |
+| Stress testing | Five synthetic regimes (trend/range/volatility/liquidity crisis) with five invariant checks through the full risk chain | Synthetic results are risk-behavior evidence, not profitability claims. |
+| A/B validation | Five-rule verdict (strict advantage, drawdown, generalization, no bypass, magnitude) across identical-seed regime windows | Synthetic stress-vehicle PnL is not a real-market profitability claim. |
 
 ## Quick Start
 
@@ -61,11 +65,11 @@ The fast market-data path remains lightweight: it does not call an LLM or make s
 git clone https://github.com/Zhiyunyang274/polysignal-pro.git
 cd polysignal-pro
 
-# Recommended: uv
+# Recommended: uv (requires Python 3.11+)
 uv sync --extra dev --extra dashboard
 
 # Alternative: pip
-python -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
 pip install -e ".[dev,dashboard]"
 ```
@@ -138,6 +142,9 @@ The system is designed to stop before acting when its evidence is weak.
 | Automatic execution | Disabled in [`config/risk.yaml`](config/risk.yaml). |
 | Order path | The live trader is a non-executing stub. |
 | Risk decision | Every candidate passes through the Risk Governor; hard rejections win. |
+| Account ledger | Real balance, daily/weekly PnL, and consecutive-loss tracking feed every risk decision. |
+| Circuit breaker | Consecutive API failures and WS disconnects trip per-channel breakers; evidence-based recovery. |
+| Exposure limits | Per-market and per-strategy caps enforced as hard rejections via wired guards. |
 | LLM | Structured analysis only; never on the ultra-fast path and never an order source. |
 | Ambiguous markets | Resolution or lifecycle ambiguity blocks live eligibility. |
 | Secrets | Environment variables only; `.env` is ignored by Git. |
@@ -147,26 +154,29 @@ Read the complete [risk policy](docs/risk_policy.md) before changing configurati
 
 ## Current Research State
 
-The crypto-threshold work is in **shadow validation**, not production trading. The current v7 cohort is collecting qualifying forward observations; it does not support a profitability claim, an edge claim, or a live-trading recommendation. Older artifacts are audit-only when their provenance or timing contract is insufficient.
+The crypto-threshold edge research has completed its first full validation cycle across three cohorts (v7 + v10 + v11) spanning **7 assets** (BTC/ETH/SOL/XRP/DOGE/BNB/LINK) and **6 independent clusters**. The merged result — **16 closed positions, 1 win (6.2%), negative returns in every cohort** — led to the formal **quarantine of `crypto_price_threshold_v1`** via the feedback gate (five hard-fail reasons including false-positive rate 0.94 and high-confidence loss rate 0.94).
 
-The evidence, constraints, and next gates are documented in [GitHub Polymarket Strategy Research](docs/github_polymarket_strategy_research.md). This project keeps incomplete results visible rather than filling gaps with assumptions.
+No edge type currently supports live trading. The system remains in **shadow validation** mode. All evidence is documented in the [iteration log](docs/iteration_log.md) (28 iterations, fully auditable).
 
 ## Project Map
 
 ```text
 polysignal/
-  ingestion/     Public and mock market data clients
+  ingestion/     Public and mock market data clients (incl. multi-source klines)
   engines/       Market, wallet, event, and lifecycle analysis
   strategies/    Candidate-signal rules
-  risk/          Central risk controls and guards
-  execution/     Deterministic paper trading and a live-trader stub
+  risk/          Risk Governor, circuit breaker, exposure & liquidity guards
+  execution/     Paper trader, SimBroker (fees/depth/latency/faults), AccountState
   shadow/        Run-scoped validation, provenance, and PnL research
+  runner/        Decomposed paper-runner domains (watchlist, sampling, run state)
+  research/      Cluster-level expectancy merging
   interface/     CLI, Telegram, dashboards, and local web console
   storage/       SQLite persistence
+  utils/         Time utilities and performance metrics
 
 config/          Safe defaults and provider configuration
-scripts/         Explicit research, validation, and reporting commands
-tests/           Unit, integration, safety, and regression coverage
+scripts/         Research, validation, stress testing, A/B comparison, reporting
+tests/           Unit, integration, safety, and regression coverage (1898 tests)
 docs/            Architecture, operations, audit, and risk documentation
 ```
 
@@ -176,7 +186,7 @@ docs/            Architecture, operations, audit, and risk documentation
 uv run pytest -q
 ```
 
-The public-release verification completed with `1762 passed`. Tests use mocks or controlled fixtures and do not require a Polymarket account or private key.
+Latest verification: **1898 passed** (28 iterations, zero regressions per iteration). Tests use mocks or controlled fixtures and do not require a Polymarket account or private key.
 
 ## Documentation
 
@@ -185,8 +195,10 @@ The public-release verification completed with `1762 passed`. Tests use mocks or
 | [Chinese README](README.zh-CN.md) | Full Simplified Chinese project guide. |
 | [Specification](SPEC.md) | Product scope, architecture, and acceptance criteria. |
 | [Engineering rules](CLAUDE.md) | Non-negotiable safety and implementation constraints. |
-| [Risk policy](docs/risk_policy.md) | Risk gates, defaults, and operating boundaries. |
-| [Architecture decisions](docs/architecture_decisions.md) | Recorded technical decisions and tradeoffs. |
+| [Risk policy](docs/risk_policy.md) | Risk gates, defaults, wired guards, and operating boundaries. |
+| [Architecture decisions](docs/architecture_decisions.md) | ADR-001 through ADR-028: recorded technical decisions. |
+| [Iteration log](docs/iteration_log.md) | 28-iteration engineering and research audit trail. |
+| [System review](docs/system_review_2026-09-11.md) | Full technical map, risk list, and tech-debt tracking. |
 | [API integration guide](docs/phase_4_api.md) | Public read-only Polymarket API usage. |
 | [Package safety](docs/package_safety.md) | What is excluded from clean release packages. |
 
@@ -198,6 +210,7 @@ Contributions are welcome when they preserve the project's operating model:
 2. Do not add secrets, private keys, or authenticated order routes to examples or tests.
 3. Route candidate decisions through the Risk Governor and add focused tests.
 4. Treat missing or ambiguous market evidence as a reason to stop, not a reason to guess.
+5. All three gates must pass: `pytest` (1898 baseline), `ruff check .` (zero), `mypy polysignal` (zero).
 
 See [AGENTS.md](AGENTS.md) and [docs/coding_standard.md](docs/coding_standard.md) for repository conventions.
 

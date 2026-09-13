@@ -4,7 +4,8 @@
   <p>观察公开市场数据，解释候选信号，并在明确的风控边界内验证研究假设。</p>
   <p>
     <a href="https://github.com/Zhiyunyang274/polysignal-pro/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-0f766e?style=flat-square" alt="MIT License" /></a>
-    <img src="https://img.shields.io/badge/Python-3.9%2B-3776ab?style=flat-square&logo=python&logoColor=white" alt="Python 3.9 or later" />
+    <img src="https://img.shields.io/badge/Python-3.11%2B-3776ab?style=flat-square&logo=python&logoColor=white" alt="Python 3.11 or later" />
+    <img src="https://img.shields.io/badge/Tests-1898%20passed-16a34a?style=flat-square" alt="1898 tests passed" />
     <img src="https://img.shields.io/badge/Mode-read--only%20%2B%20paper-0f766e?style=flat-square" alt="Read-only and paper trading" />
     <img src="https://img.shields.io/badge/Live%20trading-disabled-991b1b?style=flat-square" alt="Live trading disabled" />
   </p>
@@ -38,6 +39,7 @@ flowchart LR
     F --> G["记录与告警"]
     F --> H["确定性模拟交易"]
     F --> I["人工复核"]
+    F --> J["账户账本 & 熔断器"]
 ```
 
 快速市场数据路径保持轻量：不调用 LLM，也不执行慢速外部请求。LLM 的输出仅能作为结构化研究输入，不能产生订单。
@@ -46,12 +48,14 @@ flowchart LR
 
 | 模块 | 已包含能力 | 明确边界 |
 | --- | --- | --- |
-| 数据接入 | Mock、公开 Gamma/CLOB REST 与只读 WebSocket 数据源 | 只读取公开数据；失败时安全降级。 |
+| 数据接入 | Mock、公开 Gamma/CLOB REST 与只读 WebSocket 数据源（含多源历史K线） | 只读取公开数据；失败时安全降级。 |
 | 市场结构 | 点差、深度、订单簿失衡与 YES/NO 合成价格检查 | 候选信号不等于交易建议。 |
 | 情报引擎 | 钱包行为、事件评估、结算语义与生命周期检查 | 钱包和 LLM 只提供辅助分数，绝不是唯一交易理由。 |
-| 风控中枢 | 硬拒绝、敞口限制、流动性门槛、陈旧数据检查与熔断 | 硬拒绝的优先级高于评分。 |
-| 研究执行 | 确定性模拟盘、SQLite、CLI、Telegram 告警、仪表盘和本地 Web Console | 实盘执行器仍是不会下单的 stub。 |
-| Shadow 验证 | 按 run 保存的价格、来源证明、执行成本与 forward observation 产物 | 证据不完整时 fail closed，不计算 PnL。 |
+| 风控中枢 | 硬拒绝、三级敞口限制、流动性门槛、熔断器、真实账户账本（日/周/连亏实时追踪） | 硬拒绝的优先级高于评分；亏损熔断基于真实状态触发。 |
+| 研究执行 | 确定性模拟盘、SimBroker（手续费+L2深度+延迟+故障注入）、SQLite、CLI、Telegram 告警、仪表盘和本地 Web Console | 实盘执行器仍是不会下单的 stub。 |
+| Shadow 验证 | 按 run 保存的价格、来源证明、执行成本与 forward observation 产物，含 cluster 级期望收益合并 | 证据不完整时 fail closed，不计算 PnL。 |
+| 压力测试 | 五种合成环境（趋势/震荡/波动/流动性危机）× 五项不变量检查，走完整风控链 | 合成结果是风险行为证据，不是盈利声明。 |
+| A/B 验证 | 五规则裁决（严格优势/回撤/泛化/无旁路/幅度）× 同 seed 环境窗口 | 合成压测 PnL 不是真实市场盈利声明。 |
 
 ## 快速开始
 
@@ -61,11 +65,11 @@ flowchart LR
 git clone https://github.com/Zhiyunyang274/polysignal-pro.git
 cd polysignal-pro
 
-# 推荐使用 uv
+# 推荐使用 uv（需要 Python 3.11+）
 uv sync --extra dev --extra dashboard
 
 # 或使用 pip
-python -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
 pip install -e ".[dev,dashboard]"
 ```
@@ -138,6 +142,9 @@ uv run python scripts/smoke_real_readonly.py
 | 自动执行 | 在 [`config/risk.yaml`](config/risk.yaml) 中默认关闭。 |
 | 订单路径 | Live Trader 是不会执行真实交易的 stub。 |
 | 风控裁决 | 每个候选信号都必须经过 Risk Governor；硬拒绝优先。 |
+| 账户账本 | 真实余额、日/周损益与连亏计数实时喂入每笔风控裁决。 |
+| 熔断器 | 连续 API 失败与 WS 断连按通道触发；基于证据恢复。 |
+| 敞口限制 | 市场级与策略级上限通过已接线的守卫实施为硬拒绝。 |
 | LLM | 仅做结构化分析；不进入 ultra-fast path，不能作为订单来源。 |
 | 市场歧义 | 结算规则或生命周期存在歧义时，禁止获得实盘资格。 |
 | 密钥 | 仅从环境变量读取；`.env` 已被 Git 忽略。 |
@@ -147,18 +154,30 @@ uv run python scripts/smoke_real_readonly.py
 
 ## 当前研究状态
 
-Crypto threshold 方向仍处于 **shadow validation**，不是生产交易。当前 v7 cohort 正在收集合格的 forward observations，因此不支持盈利、优势或实盘建议的结论。来源证明或时间契约不充分的旧产物只用于审计。
+Crypto threshold edge 研究已完成首轮完整验证周期，覆盖三个 cohort（v7 + v10 + v11）、**7 种资产**（BTC/ETH/SOL/XRP/DOGE/BNB/LINK）和 **6 个独立 cluster**。合并结果——**16 笔平仓、1 赢（6.2%）、每个 cohort 均为负收益**——导致 `crypto_price_threshold_v1` 通过 feedback gate 正式**降级为 quarantined**（五重 hard-fail：false-positive rate 0.94、high-confidence loss rate 0.94 等）。
 
-证据、约束与下一步门槛记录在 [GitHub Polymarket 策略研究](docs/github_polymarket_strategy_research.md)。项目会保留不完整结果，而不会用假设填补空白。
+当前没有任何 edge 类型支持实盘。系统处于 **shadow validation** 模式。全部证据记录在[迭代日志](docs/iteration_log.md)（28 轮迭代，完整可审计）。
 
 ## 项目结构
 
 ```text
-polysignal/       采集、分析、策略、风控、模拟盘、shadow 验证与界面
-config/           安全默认配置与 provider 配置
-scripts/          显式的研究、验证与报告命令
-tests/            单元、集成、安全与回归测试
-docs/             架构、运维、审计与风控文档
+polysignal/
+  ingestion/     公开与 mock 市场数据客户端（含多源历史K线）
+  engines/       市场、钱包、事件与生命周期分析
+  strategies/    候选信号规则
+  risk/          Risk Governor、熔断器、敞口与流动性守卫
+  execution/     模拟盘、SimBroker（手续费/深度/延迟/故障注入）、AccountState
+  shadow/        按 run 的验证、来源证明与 PnL 研究
+  runner/        拆解后的 paper-runner 域（watchlist、采样、run state）
+  research/      Cluster 级期望收益合并
+  interface/     CLI、Telegram、仪表盘与本地 Web Console
+  storage/       SQLite 持久化
+  utils/         时间工具与绩效指标
+
+config/          安全默认配置与 provider 配置
+scripts/         研究、验证、压力测试、A/B 对比与报告命令
+tests/           单元、集成、安全与回归测试（1898 tests）
+docs/            架构、运维、审计与风控文档
 ```
 
 ## 本地验证
@@ -167,7 +186,7 @@ docs/             架构、运维、审计与风控文档
 uv run pytest -q
 ```
 
-公开发布前的完整验证结果为 `1762 passed`。测试使用 mock 或受控 fixtures，不需要 Polymarket 账户或私钥。
+最新验证结果：**1898 passed**（28 轮迭代，每轮零回退）。测试使用 mock 或受控 fixtures，不需要 Polymarket 账户或私钥。
 
 ## 文档导航
 
@@ -176,8 +195,10 @@ uv run pytest -q
 | [English README](README.md) | 英文项目入口。 |
 | [产品规格](SPEC.md) | 产品范围、架构与验收标准。 |
 | [工程约束](CLAUDE.md) | 不可违反的安全与实现规则。 |
-| [风控政策](docs/risk_policy.md) | 风控门槛、默认值与运行边界。 |
-| [架构决策](docs/architecture_decisions.md) | 关键技术决策与取舍。 |
+| [风控政策](docs/risk_policy.md) | 风控门槛、默认值、已接线守卫与运行边界。 |
+| [架构决策](docs/architecture_decisions.md) | ADR-001 至 ADR-028：关键技术决策。 |
+| [迭代日志](docs/iteration_log.md) | 28 轮工程与研究审计记录。 |
+| [系统审查](docs/system_review_2026-09-11.md) | 完整技术地图、风险清单与技术债追踪。 |
 | [API 集成指南](docs/phase_4_api.md) | 公开只读 Polymarket API 的使用方式。 |
 | [发布包安全说明](docs/package_safety.md) | 干净发布包明确排除的内容。 |
 
@@ -189,6 +210,7 @@ uv run pytest -q
 2. 不在示例或测试中添加密钥、私钥或认证下单路径。
 3. 候选决策必须经过 Risk Governor，并补充聚焦测试。
 4. 面对缺失或歧义的市场证据，应停止而不是猜测。
+5. 三道门禁必须全过：`pytest`（1898 基线）、`ruff check .`（零）、`mypy polysignal`（零）。
 
 仓库协作约定见 [AGENTS.md](AGENTS.md) 与 [编码规范](docs/coding_standard.md)。
 
