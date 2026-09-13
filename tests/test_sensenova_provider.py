@@ -6,25 +6,24 @@ IMPORTANT: These tests mock HTTP requests, NOT real API calls.
 
 import asyncio
 import json
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from polysignal.llm.sensenova_provider import (
-    SenseNovaProvider,
-    SenseNovaConfig,
-    check_forbidden_trading_fields_in_keys,
-)
+import pytest
+
 from polysignal.llm.llm_errors import (
     LLMAuthenticationError,
-    LLMConnectionError,
     LLMForbiddenFieldsError,
     LLMInvalidJSON,
     LLMProviderNotConfigured,
     LLMRateLimit,
     LLMSchemaError,
-    LLMTimeout,
 )
 from polysignal.llm.schemas import EventAnalysisSchema
+from polysignal.llm.sensenova_provider import (
+    SenseNovaConfig,
+    SenseNovaProvider,
+    check_forbidden_trading_fields_in_keys,
+)
 
 
 class TestSenseNovaConfig:

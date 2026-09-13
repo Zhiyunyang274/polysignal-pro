@@ -4,20 +4,18 @@ Tests for Risk Governor + Lifecycle Integration
 
 import pytest
 
-from polysignal.models.signal import Signal, SignalSide, ComponentScores
-from polysignal.models.risk import RiskAction, RiskDecision, RiskContext
-from polysignal.models.market import Market, MarketCategory, MarketStatus
-from polysignal.risk.risk_governor import RiskGovernor
 from polysignal.engines.resolution_lifecycle import ResolutionLifecycleEngine
-from tests.fixtures.markets import create_mock_market
-from tests.fixtures.orderbooks import create_mock_orderbook
+from polysignal.models.risk import RiskContext
+from polysignal.models.signal import ComponentScores, Signal, SignalSide
+from polysignal.risk.risk_governor import RiskGovernor
 from tests.fixtures.lifecycle import (
-    create_mid_phase_market,
-    create_closed_market,
-    create_resolved_market,
     create_ambiguous_market,
+    create_closed_market,
     create_forbidden_category_market,
+    create_mid_phase_market,
+    create_resolved_market,
 )
+from tests.fixtures.orderbooks import create_mock_orderbook
 
 
 class TestRiskGovernorLifecycleIntegration:
@@ -398,7 +396,7 @@ class TestRiskGovernorLifecycleIntegration:
     ):
         """Test that high lifecycle_score doesn't enable live execution"""
         market = create_mid_phase_market()
-        assessment = lifecycle_engine.assess(market)
+        lifecycle_engine.assess(market)
 
         signal = Signal(
             market_id="test",

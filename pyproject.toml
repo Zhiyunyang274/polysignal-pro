@@ -3,7 +3,7 @@ name = "polysignal-pro"
 version = "0.1.0"
 description = "Polymarket prediction market intelligence system - research-first, paper trading, risk-controlled"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
     {name = "PolySignal Pro Team"}
@@ -13,8 +13,6 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
@@ -65,14 +63,37 @@ packages = ["polysignal"]
 
 [tool.black]
 line-length = 100
-target-version = ["py39"]
+target-version = ["py311"]
 
 [tool.ruff]
 line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
-ignore = []
+# E501 (line-too-long) is accepted style debt as of 2026-09-12 (Iteration 009):
+# 800+ legacy lines exceed 100 chars with zero semantic impact; per-line manual
+# rewrapping would create high-churn, regression-prone diffs with no functional
+# gain (no style CI gate exists). Semantic findings remain enforced.
+ignore = [
+    "E501",
+    # UP042 (Iteration 013): only the five enums whose custom __str__ returns
+    # self.value were migrated to StrEnum (OrderSide/OrderStatus/RiskAction/
+    # SignalSide/SuggestedMode) — behavior identical. The remaining 25 str-Enums
+    # have no custom __str__ on Python 3.11, so str(member) currently yields
+    # 'Class.MEMBER'; migrating would change log/f-string output. Intentionally kept.
+    "UP042",
+    # SIM102 (Iteration 015): collapsing nested ifs is style-only; 20 manual
+    # control-flow rewrites would be high-churn with zero functional gain.
+    "SIM102",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# SIM115 (Iteration 015): test files wire long-lived file handles into runner
+# internals or do one-shot opens of throwaway fixtures; no functional impact.
+# E402 (test_dashboard): mock-before-import is required to stub Streamlit.
+# SIM117 (provider tests): nested with (patch + pytest.raises) reads clearer.
+# SIM222 (mock provider test): deliberately weakened hash-output assertion.
+"tests/*" = ["SIM115", "E402", "SIM117", "SIM222"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -81,8 +102,10 @@ asyncio_mode = "auto"
 addopts = "-v --tb=short"
 
 [tool.mypy]
-# mypy 1.18+ no longer accepts 3.9; runtime support remains >=3.9 per ADR-012.
-python_version = "3.10"
+# Runtime floor is 3.11 (ADR-026 supersedes ADR-012); annotations in class
+# bodies (e.g. `RiskDecision | None`) are evaluated eagerly and require 3.10+.
+python_version = "3.11"
+plugins = ["pydantic.mypy"]
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true

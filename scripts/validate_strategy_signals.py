@@ -22,11 +22,10 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 # =============================================================================
 # SAFETY: This module does NOT import trading modules.
@@ -53,9 +52,7 @@ def _get_alpha_conclusion_status(num_observations: int) -> str:
 
     IMPORTANT: These are descriptive categories, NOT statistical proofs.
     """
-    if num_observations < 1:
-        return "insufficient_data"
-    elif num_observations == 1:
+    if num_observations < 1 or num_observations == 1:
         return "insufficient_data"
     elif num_observations == 2:
         return "weak_descriptive"
@@ -89,12 +86,12 @@ class AlphaForwardChange:
     question: str
     alpha_score: float
     evidence_level: str
-    first_combined_ask: Optional[float] = None
-    last_combined_ask: Optional[float] = None
-    min_combined_ask: Optional[float] = None
-    max_combined_ask: Optional[float] = None
-    delta: Optional[float] = None
-    slope: Optional[float] = None
+    first_combined_ask: float | None = None
+    last_combined_ask: float | None = None
+    min_combined_ask: float | None = None
+    max_combined_ask: float | None = None
+    delta: float | None = None
+    slope: float | None = None
     num_observations: int = 0
     conclusion_status: str = "insufficient_data"
     note: str = ""
@@ -110,8 +107,8 @@ class WatchlistPersistence:
     total_appearances: int = 0
     near_miss_hits: int = 0
     persistence_score: float = 0.0
-    avg_combined_ask: Optional[float] = None
-    avg_event_score: Optional[float] = None
+    avg_combined_ask: float | None = None
+    avg_event_score: float | None = None
     conclusion_status: str = "insufficient_data"
     note: str = ""
 
@@ -124,9 +121,9 @@ class AvoidRiskValidation:
     question: str
     avoid_score: float
     reasons: str
-    avg_ambiguity_risk: Optional[float] = None
-    category_risk: Optional[float] = None
-    avg_event_score: Optional[float] = None
+    avg_ambiguity_risk: float | None = None
+    category_risk: float | None = None
+    avg_event_score: float | None = None
     suggested_mode: str = ""
     conclusion_status: str = "insufficient_data"
     note: str = ""
@@ -138,11 +135,11 @@ class AvoidGroupComparison:
 
     avoid_group_size: int = 0
     non_avoid_group_size: int = 0
-    avoid_avg_ambiguity_risk: Optional[float] = None
-    non_avoid_avg_ambiguity_risk: Optional[float] = None
-    ambiguity_risk_delta: Optional[float] = None
-    avoid_avg_event_score: Optional[float] = None
-    non_avoid_avg_event_score: Optional[float] = None
+    avoid_avg_ambiguity_risk: float | None = None
+    non_avoid_avg_ambiguity_risk: float | None = None
+    ambiguity_risk_delta: float | None = None
+    avoid_avg_event_score: float | None = None
+    non_avoid_avg_event_score: float | None = None
     conclusion_status: str = "insufficient_data"
     note: str = ""
 
@@ -153,9 +150,9 @@ class CategoryPerformance:
 
     category: str
     market_count: int = 0
-    avg_alpha_score: Optional[float] = None
-    avg_avoid_score: Optional[float] = None
-    avg_ambiguity_risk: Optional[float] = None
+    avg_alpha_score: float | None = None
+    avg_avoid_score: float | None = None
+    avg_ambiguity_risk: float | None = None
     near_miss_frequency: float = 0.0
     conclusion_status: str = "insufficient_data"
 
@@ -183,7 +180,7 @@ class ValidationDataLoader:
         run_ids.sort()
         return run_ids
 
-    def load_run_summary(self, run_id: str) -> Optional[dict[str, Any]]:
+    def load_run_summary(self, run_id: str) -> dict[str, Any] | None:
         """Load summary.json for a run."""
         path = self.runs_dir / run_id / "summary.json"
         if not path.exists():
@@ -223,7 +220,7 @@ class ValidationDataLoader:
         if not path.exists():
             return []
         try:
-            with open(path, "r") as f:
+            with open(path) as f:
                 reader = csv.DictReader(f)
                 return list(reader)
         except Exception:
@@ -235,7 +232,7 @@ class ValidationDataLoader:
         if not path.exists():
             return []
         try:
-            with open(path, "r") as f:
+            with open(path) as f:
                 reader = csv.DictReader(f)
                 return list(reader)
         except Exception:
@@ -247,7 +244,7 @@ class ValidationDataLoader:
         if not path.exists():
             return []
         try:
-            with open(path, "r") as f:
+            with open(path) as f:
                 reader = csv.DictReader(f)
                 return list(reader)
         except Exception:
@@ -264,7 +261,7 @@ class ValidationDataLoader:
         except Exception:
             return []
 
-    def load_comparison_summary(self) -> Optional[dict[str, Any]]:
+    def load_comparison_summary(self) -> dict[str, Any] | None:
         """Load intelligence_comparison_summary.json."""
         path = self.runs_dir / "intelligence_comparison_summary.json"
         if not path.exists():
@@ -282,7 +279,7 @@ class ValidationDataLoader:
             if not path.exists():
                 continue
             try:
-                with open(path, "r") as f:
+                with open(path) as f:
                     reader = csv.DictReader(f)
                     for row in reader:
                         all_samples.append(row)
@@ -493,7 +490,7 @@ class AvoidValidator:
         self,
         avoid_candidates: list[dict[str, Any]],
         all_events: list[dict[str, Any]],
-        control_group_samples: Optional[list[dict[str, Any]]] = None,
+        control_group_samples: list[dict[str, Any]] | None = None,
     ) -> AvoidGroupComparison:
         """Compare avoid group vs non-avoid control group.
 
@@ -784,7 +781,7 @@ class ValidationReportGenerator:
         lines.append("")
         lines.append(f"> **{VALIDATION_DISCLAIMER}**")
         lines.append("")
-        lines.append(f"> **live_trading_enabled: false** | **allow_auto_execution: false**")
+        lines.append("> **live_trading_enabled: false** | **allow_auto_execution: false**")
         lines.append("")
         lines.append("---")
         lines.append("")
@@ -1079,7 +1076,7 @@ class ValidationReportGenerator:
 # =============================================================================
 
 
-def _safe_float(value: Any, default: Optional[float] = None) -> Optional[float]:
+def _safe_float(value: Any, default: float | None = None) -> float | None:
     """Safely convert to float."""
     if value is None:
         return default
@@ -1110,7 +1107,7 @@ def _pearson_correlation(xs: list[float], ys: list[float]) -> float:
         return 0.0
     x_mean = sum(xs) / n
     y_mean = sum(ys) / n
-    cov = sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, ys))
+    cov = sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, ys, strict=False))
     sx = sum((x - x_mean) ** 2 for x in xs) ** 0.5
     sy = sum((y - y_mean) ** 2 for y in ys) ** 0.5
     if sx == 0 or sy == 0:
@@ -1301,8 +1298,8 @@ def main() -> None:
 
     print("=" * 60)
     print("VALIDATION COMPLETE")
-    print(f"live_trading_enabled: false (unchanged)")
-    print(f"allow_auto_execution: false (unchanged)")
+    print("live_trading_enabled: false (unchanged)")
+    print("allow_auto_execution: false (unchanged)")
     print("=" * 60)
 
 

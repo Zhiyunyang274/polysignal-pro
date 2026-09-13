@@ -5,24 +5,18 @@ Tests the integration between Risk Governor and Event Intelligence Engine,
 particularly the dual safeguard for event_signal_only detection.
 """
 
+
 import pytest
 
-from datetime import datetime, timedelta
-
-from polysignal.models.event import SuggestedMode
-from polysignal.models.market import Market, MarketCategory, MarketStatus
-from polysignal.models.signal import Signal, SignalSide, ComponentScores
-from polysignal.models.risk import RiskContext, RiskAction
-from polysignal.risk.risk_governor import RiskGovernor
 from polysignal.engines.event_intelligence import EventIntelligenceEngine
 from polysignal.llm.mock_provider import MockScenario
+from polysignal.models.event import SuggestedMode
+from polysignal.models.risk import RiskAction, RiskContext
+from polysignal.models.signal import ComponentScores, Signal, SignalSide
+from polysignal.risk.risk_governor import RiskGovernor
 from tests.fixtures.events import (
     create_event_market,
-    create_high_event_score_assessment,
-    create_low_event_score_assessment,
-    create_high_ambiguity_assessment,
     create_llm_error_assessment,
-    create_forbidden_category_assessment,
 )
 
 

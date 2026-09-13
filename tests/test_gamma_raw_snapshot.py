@@ -1,6 +1,6 @@
 import hashlib
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -13,7 +13,7 @@ from polysignal.shadow.gamma_raw_snapshot import (
     canonical_json_bytes,
 )
 
-NOW = datetime(2026, 8, 4, 12, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 8, 4, 12, 0, tzinfo=UTC)
 
 
 def _record(recorder: GammaRawSnapshotRecorder, payloads: list[dict]) -> None:

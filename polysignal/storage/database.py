@@ -12,19 +12,20 @@ Tables:
 - system_health: System health records
 """
 
-import asyncio
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import aiosqlite
 
+from polysignal.logging_config import get_logger
 from polysignal.models.market import Market
-from polysignal.models.orderbook import OrderBookSnapshot
-from polysignal.models.signal import Signal
-from polysignal.models.risk import RiskDecision
 from polysignal.models.paper_trade import PaperOrder, PaperPosition
+from polysignal.models.risk import RiskDecision
+from polysignal.models.signal import Signal
+
+logger = get_logger("polysignal.storage.database")
 
 
 class Database:
@@ -42,7 +43,14 @@ class Database:
             db_path: Path to SQLite database file
         """
         self.db_path = db_path
-        self._db: aiosqlite.Optional[Connection] = None
+        self._db: aiosqlite.Connection | None = None
+
+    def require_connection(self) -> aiosqlite.Connection:
+        """Return the live connection or raise; callers inside an open run
+        use this instead of touching the private _db attribute."""
+        if self._db is None:
+            raise RuntimeError("Database not connected")
+        return self._db
 
     async def connect(self) -> None:
         """Connect to database and create tables"""
@@ -80,8 +88,14 @@ class Database:
             if column_name not in existing_columns:
                 try:
                     await self._db.execute(f"ALTER TABLE paper_runs ADD COLUMN {column_name} {column_type}")
-                except Exception:
-                    pass  # Column might already exist
+                except Exception as e:
+                    # Migration is best-effort (column may already exist from a
+                    # concurrent start), but failures must be visible.
+                    logger.warning(
+                        "Column migration skipped",
+                        column=column_name,
+                        error=str(e),
+                    )
 
         await self._db.commit()
 
@@ -401,7 +415,7 @@ class Database:
         )
         await self._db.commit()
 
-    async def get_market(self, market_id: str) -> Optional[Market]:
+    async def get_market(self, market_id: str) -> Market | None:
         """Get a market by ID"""
         if not self._db:
             raise RuntimeError("Database not connected")
@@ -482,7 +496,7 @@ class Database:
 
     def _row_to_signal(self, row: aiosqlite.Row) -> Signal:
         """Convert row to Signal"""
-        from polysignal.models.signal import SignalSide, ComponentScores
+        from polysignal.models.signal import SignalSide
 
         return Signal(
             signal_id=row["signal_id"],
@@ -672,7 +686,7 @@ class Database:
         component: str,
         status: str,
         message: str = "",
-        metadata: Optional[dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         """Log system health"""
         if not self._db:
@@ -720,17 +734,20 @@ class Database:
         order_count = 0
         position_count = 0
 
+        row_signal: aiosqlite.Row | None
         async with self._db.execute("SELECT COUNT(*) FROM signals") as cursor:
-            row = await cursor.fetchone()
-            signal_count = row[0] if row else 0
+            row_signal = await cursor.fetchone()
+            signal_count = row_signal[0] if row_signal else 0
 
+        row_order: aiosqlite.Row | None
         async with self._db.execute("SELECT COUNT(*) FROM paper_orders") as cursor:
-            row = await cursor.fetchone()
-            order_count = row[0] if row else 0
+            row_order = await cursor.fetchone()
+            order_count = row_order[0] if row_order else 0
 
+        row_position: aiosqlite.Row | None
         async with self._db.execute("SELECT COUNT(*) FROM paper_positions WHERE size > 0") as cursor:
-            row = await cursor.fetchone()
-            position_count = row[0] if row else 0
+            row_position = await cursor.fetchone()
+            position_count = row_position[0] if row_position else 0
 
         return {
             "signal_count": signal_count,
@@ -750,11 +767,11 @@ class Database:
         user_id: int,
         result: str,
         result_message: str,
-        signal_id: Optional[str] = None,
-        username: Optional[str] = None,
-        market_id: Optional[str] = None,
-        strategy_name: Optional[str] = None,
-        wallet_address: Optional[str] = None,
+        signal_id: str | None = None,
+        username: str | None = None,
+        market_id: str | None = None,
+        strategy_name: str | None = None,
+        wallet_address: str | None = None,
     ) -> None:
         """Log a Telegram action"""
         if not self._db:
@@ -787,7 +804,7 @@ class Database:
         self,
         signal_id: str,
         action: str,
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Check if a Telegram action already exists for a signal"""
         if not self._db:
             raise RuntimeError("Database not connected")
@@ -811,8 +828,8 @@ class Database:
 
     async def add_ignore_rule(
         self,
-        market_id: Optional[str],
-        strategy_name: Optional[str],
+        market_id: str | None,
+        strategy_name: str | None,
         added_by: str,
     ) -> bool:
         """Add an ignore rule. Returns True if added, False if already exists."""
@@ -873,7 +890,7 @@ class Database:
         target_type: str,
         target_id: str,
         added_by: str,
-        reason: Optional[str] = None,
+        reason: str | None = None,
     ) -> bool:
         """Add to blacklist. Returns True if added, False if already exists."""
         if not self._db:
@@ -930,7 +947,7 @@ class Database:
         self,
         wallet_address: str,
         added_by: str,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> bool:
         """Add wallet to runtime watchlist. Returns True if added, False if exists."""
         if not self._db:
@@ -978,7 +995,7 @@ class Database:
     # System state operations
     # =========================================================================
 
-    async def get_system_state(self, key: str) -> Optional[str]:
+    async def get_system_state(self, key: str) -> str | None:
         """Get system state value"""
         if not self._db:
             raise RuntimeError("Database not connected")
@@ -994,7 +1011,7 @@ class Database:
         self,
         key: str,
         value: str,
-        updated_by: Optional[str] = None,
+        updated_by: str | None = None,
     ) -> None:
         """Set system state value"""
         if not self._db:
@@ -1017,7 +1034,7 @@ class Database:
         self,
         signal_id: str,
         reviewed_by: str,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> None:
         """Mark a signal as reviewed"""
         if not self._db:
@@ -1048,7 +1065,7 @@ class Database:
     # Signal lookup operations
     # =========================================================================
 
-    async def get_signal(self, signal_id: str) -> Optional[Signal]:
+    async def get_signal(self, signal_id: str) -> Signal | None:
         """Get a signal by ID"""
         if not self._db:
             raise RuntimeError("Database not connected")
@@ -1062,7 +1079,7 @@ class Database:
                 return self._row_to_signal(row)
         return None
 
-    async def get_risk_decision(self, signal_id: str) -> Optional[RiskDecision]:
+    async def get_risk_decision(self, signal_id: str) -> RiskDecision | None:
         """Get a risk decision by signal ID"""
         if not self._db:
             raise RuntimeError("Database not connected")

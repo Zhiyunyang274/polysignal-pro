@@ -4,10 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 from polysignal.shadow.models import CandidateSnapshot
-
 
 NEAR_MISS_TIERS_ALLOWED = {"tier1_mispricing", "tier2_strong_near_miss", "tier1", "tier2"}
 NEAR_MISS_TIERS_WATCH = {"tier3_weak_near_miss", "tier3", "weak_near_miss"}
@@ -85,7 +83,7 @@ class EntryFilterResult:
 class ShadowEntryFilter:
     """Decides whether an offline candidate can become a shadow trade."""
 
-    def __init__(self, config: Optional[EntryFilterConfig] = None):
+    def __init__(self, config: EntryFilterConfig | None = None):
         self.config = config or EntryFilterConfig()
 
     def evaluate(self, candidate: CandidateSnapshot) -> EntryFilterResult:
@@ -462,7 +460,7 @@ class ShadowEntryFilter:
 
 def filter_shadow_entries(
     candidates: list[CandidateSnapshot],
-    config: Optional[EntryFilterConfig] = None,
+    config: EntryFilterConfig | None = None,
 ) -> list[tuple[CandidateSnapshot, EntryFilterResult]]:
     entry_filter = ShadowEntryFilter(config)
     accepted: list[tuple[CandidateSnapshot, EntryFilterResult]] = []

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Optional
 from uuid import uuid4
 
 from polysignal.ingestion.api_types import (
@@ -26,7 +25,6 @@ from polysignal.models.orderbook import (
     OrderBookUpdate,
     PriceLevel,
 )
-
 
 logger = get_logger("polysignal.ingestion.data_converter")
 
@@ -61,7 +59,7 @@ class DataConverter:
     """
 
     @staticmethod
-    def parse_float(value: Optional[str | float], default: float = 0.0) -> float:
+    def parse_float(value: str | float | None, default: float = 0.0) -> float:
         """Safely parse a float from string or number"""
         if value is None:
             return default
@@ -73,7 +71,7 @@ class DataConverter:
             return default
 
     @staticmethod
-    def parse_datetime(value: Optional[str]) -> Optional[datetime]:
+    def parse_datetime(value: str | None) -> datetime | None:
         """Safely parse datetime from ISO format string"""
         if value is None:
             return None
@@ -86,7 +84,7 @@ class DataConverter:
             return None
 
     @staticmethod
-    def map_category(category: Optional[str]) -> MarketCategory:
+    def map_category(category: str | None) -> MarketCategory:
         """Map Gamma API category to internal MarketCategory"""
         if category is None:
             return MarketCategory.OTHER
@@ -108,15 +106,15 @@ class DataConverter:
     @staticmethod
     def extract_token_ids(
         tokens: list[GammaToken],
-    ) -> tuple[Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None]:
         """
         Extract YES and NO token IDs from tokens list.
 
         Returns:
             Tuple of (yes_token_id, no_token_id)
         """
-        yes_token_id: Optional[str] = None
-        no_token_id: Optional[str] = None
+        yes_token_id: str | None = None
+        no_token_id: str | None = None
 
         for token in tokens:
             outcome = (token.outcome or "").lower()
@@ -136,7 +134,7 @@ class DataConverter:
     def extract_token_ids_from_clob_ids(
         clob_token_ids: list[str],
         outcomes: list[str],
-    ) -> tuple[Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None]:
         """
         Extract YES and NO token IDs from clobTokenIds array.
 
@@ -153,8 +151,8 @@ class DataConverter:
         if not clob_token_ids or not outcomes:
             return None, None
 
-        yes_token_id: Optional[str] = None
-        no_token_id: Optional[str] = None
+        yes_token_id: str | None = None
+        no_token_id: str | None = None
 
         for i, outcome in enumerate(outcomes):
             if i >= len(clob_token_ids):
@@ -169,7 +167,7 @@ class DataConverter:
         return yes_token_id, no_token_id
 
     @staticmethod
-    def gamma_to_market(gamma_market: GammaMarket) -> Optional[Market]:
+    def gamma_to_market(gamma_market: GammaMarket) -> Market | None:
         """
         Convert Gamma API market to internal Market model.
 
@@ -188,8 +186,8 @@ class DataConverter:
         title = gamma_market.question or "Unknown Market"
 
         # Extract token IDs - try multiple methods
-        yes_token_id: Optional[str] = None
-        no_token_id: Optional[str] = None
+        yes_token_id: str | None = None
+        no_token_id: str | None = None
 
         # Method 1: From tokens array (old format)
         if gamma_market.tokens:
@@ -273,7 +271,7 @@ class DataConverter:
         )
 
     @staticmethod
-    def clob_level_to_price_level(level: CLOBPriceLevel) -> Optional[PriceLevel]:
+    def clob_level_to_price_level(level: CLOBPriceLevel) -> PriceLevel | None:
         """
         Convert CLOB price level to internal PriceLevel.
 
@@ -335,10 +333,10 @@ class DataConverter:
 
     @staticmethod
     def clob_orderbooks_to_snapshot(
-        yes_orderbook: Optional[CLOBOrderbook],
-        no_orderbook: Optional[CLOBOrderbook],
+        yes_orderbook: CLOBOrderbook | None,
+        no_orderbook: CLOBOrderbook | None,
         market_id: str,
-    ) -> Optional[OrderBookSnapshot]:
+    ) -> OrderBookSnapshot | None:
         """
         Convert YES and NO CLOB orderbooks to internal OrderBookSnapshot.
 

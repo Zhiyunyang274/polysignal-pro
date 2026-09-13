@@ -27,11 +27,9 @@ Requirements:
 
 import argparse
 import asyncio
-import json
 import os
 import sys
 from datetime import datetime
-from typing import Optional
 
 # Load .env file if available
 try:
@@ -43,19 +41,17 @@ except ImportError:
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from polysignal.llm.llm_config import (
-    LLMConfig,
-    LLMProviderType,
-    load_llm_config,
-)
 from polysignal.llm.deepseek_provider import DeepSeekProvider
 from polysignal.llm.glm_provider import GLMProvider
-from polysignal.llm.sensenova_provider import SenseNovaProvider, SenseNovaConfig
-from polysignal.llm.xfyun_anthropic_provider import XFyunAnthropicProvider, XFyunAnthropicConfig
-from polysignal.llm.provider_router import ProviderRouter, AnalysisType
+from polysignal.llm.llm_config import (
+    LLMConfig,
+    load_llm_config,
+)
 from polysignal.llm.mock_provider import MockLLMProvider, MockScenario
+from polysignal.llm.provider_router import ProviderRouter
 from polysignal.llm.schemas import EventAnalysisSchema, MarketRuleSchema
-from polysignal.llm.llm_errors import LLMProviderNotConfigured
+from polysignal.llm.sensenova_provider import SenseNovaConfig, SenseNovaProvider
+from polysignal.llm.xfyun_anthropic_provider import XFyunAnthropicConfig, XFyunAnthropicProvider
 
 
 def print_header(title: str) -> None:
@@ -102,7 +98,7 @@ def check_api_keys(provider: str) -> dict:
     return keys
 
 
-def create_provider(provider_type: str, config: LLMConfig) -> Optional[object]:
+def create_provider(provider_type: str, config: LLMConfig) -> object | None:
     """Create LLM provider"""
     if provider_type == "deepseek":
         if not config.deepseek.is_configured():
@@ -252,7 +248,7 @@ Resolution Source: Binance API price feed
 
 async def run_smoke_test(provider_type: str) -> dict:
     """Run smoke test for provider"""
-    print_header(f"PolySignal Pro - Real LLM Smoke Test")
+    print_header("PolySignal Pro - Real LLM Smoke Test")
     print(f"Provider: {provider_type}")
     print(f"Started: {datetime.utcnow().isoformat()}")
 
@@ -280,7 +276,7 @@ async def run_smoke_test(provider_type: str) -> dict:
     provider = create_provider(provider_type, config)
 
     if provider is None:
-        print(f"  ✗ Provider not configured (missing API key)")
+        print("  ✗ Provider not configured (missing API key)")
         print("\n" + "=" * 60)
         print("SAFETY CHECK: Provider not configured")
         print("=" * 60)
@@ -296,7 +292,7 @@ async def run_smoke_test(provider_type: str) -> dict:
     event_result = await test_event_analysis(provider, provider_type)
 
     if event_result["success"]:
-        print(f"  ✓ Event analysis succeeded")
+        print("  ✓ Event analysis succeeded")
         print(f"    Latency: {event_result['latency']:.2f}s")
         print(f"    Provider: {event_result['provider']}")
         print(f"    Confidence: {event_result['confidence']}")
@@ -304,7 +300,7 @@ async def run_smoke_test(provider_type: str) -> dict:
         print(f"    Suggested Mode: {event_result['suggested_mode']}")
         print(f"    Forbidden Fields: {event_result['forbidden_fields']}")
     else:
-        print(f"  ✗ Event analysis failed")
+        print("  ✗ Event analysis failed")
         print(f"    Error: {event_result['error']}")
         print(f"    Error Type: {event_result['error_type']}")
 
@@ -313,14 +309,14 @@ async def run_smoke_test(provider_type: str) -> dict:
     rule_result = await test_rule_analysis(provider, provider_type)
 
     if rule_result["success"]:
-        print(f"  ✓ Rule analysis succeeded")
+        print("  ✓ Rule analysis succeeded")
         print(f"    Latency: {rule_result['latency']:.2f}s")
         print(f"    Provider: {rule_result['provider']}")
         print(f"    Confidence: {rule_result['confidence']}")
         print(f"    Rule Clarity: {rule_result['rule_clarity']}")
         print(f"    Has Ambiguity: {rule_result['has_ambiguity']}")
     else:
-        print(f"  ✗ Rule analysis failed")
+        print("  ✗ Rule analysis failed")
         print(f"    Error: {rule_result['error']}")
         print(f"    Error Type: {rule_result['error_type']}")
 
@@ -335,9 +331,9 @@ async def run_smoke_test(provider_type: str) -> dict:
 
     # Safety check
     print_header("SAFETY CHECK: Live Trading Status")
-    print(f"live_trading_enabled: False (unchanged)")
-    print(f"allow_auto_execution: False (unchanged)")
-    print(f"paper_trading_enabled: True")
+    print("live_trading_enabled: False (unchanged)")
+    print("allow_auto_execution: False (unchanged)")
+    print("paper_trading_enabled: True")
     print("\n✅ Safe: live_trading is DISABLED")
     print("=" * 60)
 

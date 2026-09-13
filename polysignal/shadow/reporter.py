@@ -6,11 +6,10 @@ import csv
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from polysignal.shadow.models import SHADOW_TRADE_FIELDS, ShadowTrade, ShadowTradeStatus
 from polysignal.shadow.pnl import summarize_performance
-
 
 DIAGNOSTIC_FIELDS = [
     "market_id",
@@ -82,7 +81,7 @@ def write_shadow_positions_json(path: Path, trades: list[ShadowTrade]) -> None:
 def build_performance_summary(
     trades: list[ShadowTrade],
     safety_verification: dict[str, Any],
-    diagnostics_summary: Optional[dict[str, Any]] = None,
+    diagnostics_summary: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     summary = summarize_performance(trades)
     summary.update({

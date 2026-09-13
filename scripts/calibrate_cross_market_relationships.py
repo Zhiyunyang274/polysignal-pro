@@ -17,20 +17,18 @@ from datetime import datetime
 from difflib import SequenceMatcher
 from pathlib import Path
 from statistics import mean
-from typing import Any, Optional
+from typing import Any
 
 from scripts.discover_cross_market_edges import (
     EDGE_TYPE,
     RELATIONSHIP_DUPLICATE,
     RELATIONSHIP_MUTUALLY_EXCLUSIVE,
     RELATIONSHIP_NEAR_DUPLICATE,
-    STOPWORDS,
     normalize_question_text,
     question_tokens,
 )
 from scripts.discover_executable_edges import verify_safety
 from scripts.run_shadow_paper_loop import safe_float
-
 
 STATUS_HIGH_DUPLICATE = "high_confidence_duplicate"
 STATUS_MEDIUM_RELATED = "medium_confidence_related"
@@ -78,7 +76,7 @@ GENERIC_ENTITY_TERMS = {
 }
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Calibrate cross-market relationship confidence offline")
     parser.add_argument("--runs_dir", type=str, default="runs")
     parser.add_argument("--output_dir", type=str, default="runs")
@@ -526,7 +524,7 @@ def run(args: argparse.Namespace) -> tuple[list[dict[str, Any]], dict[str, Any]]
     return calibrated, summarize(started, calibrated)
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     rows, summary = run(args)
     print_summary(summary, args.dry_run)

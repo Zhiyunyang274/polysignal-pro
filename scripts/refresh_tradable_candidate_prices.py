@@ -14,7 +14,7 @@ import csv
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 
@@ -27,8 +27,7 @@ from scripts.backfill_shadow_token_ids import (
     GammaTokenLookupClient,
     lookup_missing_token_pairs,
 )
-from scripts.run_shadow_paper_loop import candidate_from_tradable, safe_bool, safe_float
-
+from scripts.run_shadow_paper_loop import candidate_from_tradable, safe_float
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -54,7 +53,7 @@ PRICE_FIELDS = [
 ]
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Refresh tradable candidates with side-specific CLOB prices")
     parser.add_argument("--runs_dir", type=str, default="runs")
     parser.add_argument("--output_dir", type=str, default="runs")
@@ -70,7 +69,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 def load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    with open(path, "r") as f:
+    with open(path) as f:
         data = yaml.safe_load(f) or {}
     return data if isinstance(data, dict) else {}
 
@@ -128,7 +127,7 @@ def resolve_token_ids(row: dict[str, str], resolver: ShadowTokenIdResolver) -> t
     return "", "", "missing_token_id"
 
 
-def price_levels(orderbook: Optional[CLOBOrderbook]) -> dict[str, float]:
+def price_levels(orderbook: CLOBOrderbook | None) -> dict[str, float]:
     if orderbook is None:
         return {
             "best_bid": 0.0,
@@ -154,8 +153,8 @@ def price_levels(orderbook: Optional[CLOBOrderbook]) -> dict[str, float]:
 
 def apply_price_snapshot(
     row: dict[str, str],
-    yes_book: Optional[CLOBOrderbook],
-    no_book: Optional[CLOBOrderbook],
+    yes_book: CLOBOrderbook | None,
+    no_book: CLOBOrderbook | None,
     timestamp: str,
 ) -> dict[str, str]:
     payload = dict(row)
@@ -200,7 +199,7 @@ async def refresh_prices(
     runs_dir: Path,
     max_candidates: int,
     max_api_errors: int,
-    clob_client: Optional[CLOBReadOnlyClient] = None,
+    clob_client: CLOBReadOnlyClient | None = None,
 ) -> tuple[list[dict[str, str]], dict[str, Any]]:
     shadow_dir = runs_dir / "shadow"
     resolver = ShadowTokenIdResolver(runs_dir, shadow_dir)
@@ -215,7 +214,7 @@ async def refresh_prices(
     try:
         for row in rows[:max_candidates]:
             payload = dict(row)
-            market_id = str(payload.get("market_id") or "")
+            str(payload.get("market_id") or "")
             yes_token_id, no_token_id, token_source = resolve_token_ids(payload, resolver)
             payload["yes_token_id"] = yes_token_id
             payload["no_token_id"] = no_token_id
@@ -291,7 +290,7 @@ def write_csv(path: Path, rows: list[dict[str, str]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames: list[str] = []
     for row in rows:
-        for key in row.keys():
+        for key in row:
             if key not in fieldnames:
                 fieldnames.append(key)
     for key in PRICE_FIELDS:
@@ -423,7 +422,7 @@ def print_summary(summary: dict[str, Any], candidate_file: Path, dry_run: bool) 
     print(f"tiny_live_recommendation: {summary.get('tiny_live_recommendation', 'NO')}")
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     rows, summary, candidate_file = asyncio.run(run_async(args))
     print_summary(summary, candidate_file, args.dry_run)

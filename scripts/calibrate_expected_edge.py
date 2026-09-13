@@ -14,13 +14,12 @@ import csv
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 
-from scripts.run_shadow_paper_loop import candidate_from_tradable, safe_float
 from polysignal.shadow.entry_filter import EntryFilterConfig, ShadowEntryFilter
-
+from scripts.run_shadow_paper_loop import candidate_from_tradable, safe_float
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -36,7 +35,7 @@ EDGE_FIELDS = [
 ]
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Calibrate orderbook-only expected edge for priced candidates")
     parser.add_argument("--runs_dir", type=str, default="runs")
     parser.add_argument("--output_dir", type=str, default="runs")
@@ -49,7 +48,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 def load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    with open(path, "r") as f:
+    with open(path) as f:
         data = yaml.safe_load(f) or {}
     return data if isinstance(data, dict) else {}
 
@@ -202,7 +201,7 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fields: list[str] = []
     for row in rows:
-        for key in row.keys():
+        for key in row:
             if key not in fields:
                 fields.append(key)
     for key in EDGE_FIELDS:
@@ -290,7 +289,7 @@ def run(args: argparse.Namespace) -> tuple[list[dict[str, Any]], dict[str, Any]]
     return calibrated, summarize(calibrated)
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     rows, summary = run(args)
     print_summary(summary, args.dry_run)

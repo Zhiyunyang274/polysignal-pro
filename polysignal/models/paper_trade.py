@@ -7,24 +7,23 @@ IMPORTANT: MVP only supports LIMIT orders. MARKET orders are disabled.
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from polysignal.utils.time import utc_now
 
-class OrderSide(str, Enum):
+
+class OrderSide(StrEnum):
     """Order side"""
     BUY_YES = "buy_yes"
     SELL_YES = "sell_yes"
     BUY_NO = "buy_no"
     SELL_NO = "sell_no"
 
-    def __str__(self) -> str:
-        return self.value
 
-
-class OrderStatus(str, Enum):
+class OrderStatus(StrEnum):
     """Order status"""
     PENDING = "pending"
     FILLED = "filled"
@@ -32,16 +31,13 @@ class OrderStatus(str, Enum):
     CANCELLED = "cancelled"
     EXPIRED = "expired"
 
-    def __str__(self) -> str:
-        return self.value
-
 
 class PaperOrder(BaseModel):
     """Paper trading order (LIMIT orders only in MVP)"""
     order_id: str = Field(default_factory=lambda: str(uuid4()))
     signal_id: str
     risk_decision_id: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=utc_now)
 
     # Market information
     market_id: str
@@ -105,13 +101,13 @@ class PaperPosition(BaseModel):
     realized_pnl_usd: float = Field(default=0.0)
 
     # Metadata
-    opened_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    opened_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
 
     def update_price(self, current_price: float) -> None:
         """Update current price and unrealized PnL"""
         self.current_price = current_price
-        self.updated_at = datetime.utcnow()
+        self.updated_at = utc_now()
 
         if self.size > 0 and self.avg_entry_price > 0:
             # Calculate unrealized PnL based on position side

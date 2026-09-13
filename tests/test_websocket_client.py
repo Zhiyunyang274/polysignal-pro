@@ -4,10 +4,11 @@ Tests for WebSocket Client
 All tests use mock WebSocket - no real network connections.
 """
 
-import pytest
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from polysignal.ingestion.websocket_client import (
     CLOBWebSocketClient,

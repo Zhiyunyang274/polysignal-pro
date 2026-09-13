@@ -5,21 +5,21 @@ Tests the CLOB API client with mocked HTTP responses.
 All tests use mocked HTTP requests.
 """
 
-import pytest
 from unittest.mock import patch
-import httpx
 
-from polysignal.ingestion.clob_client import CLOBReadOnlyClient
+import httpx
+import pytest
+
 from polysignal.ingestion.api_errors import (
-    APINotFound,
     APIRateLimit,
     APITimeout,
     CLOBError,
 )
+from polysignal.ingestion.clob_client import CLOBReadOnlyClient
 from tests.fixtures.api_responses import (
+    create_clob_orderbook_mispricing,
     create_clob_orderbook_response,
     create_clob_tickers_list_response,
-    create_clob_orderbook_mispricing,
 )
 
 

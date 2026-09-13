@@ -5,11 +5,6 @@ Tests for Multi-Run Intelligence Comparison - Phase 5F
 import json
 import os
 import sys
-from datetime import datetime
-from pathlib import Path
-from typing import Any
-
-import pytest
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -26,7 +21,6 @@ from scripts.compare_run_intelligence import (
     PersistentWatchlistGenerator,
     RunDataLoader,
     RunDiscovery,
-    RunSummary,
     calculate_evidence_level,
     get_category_risk_score,
     infer_market_category,
@@ -196,7 +190,7 @@ class TestRunDiscovery:
         runs_dir = tmp_path / "runs"
         runs_dir.mkdir()
 
-        for i, (date, name) in enumerate([
+        for _i, (date, name) in enumerate([
             ("20260508", "abc123"),
             ("20260509", "def456"),
             ("20260510", "ghi789"),

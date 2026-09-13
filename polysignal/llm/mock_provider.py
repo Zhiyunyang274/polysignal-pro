@@ -19,7 +19,7 @@ import hashlib
 import json
 import time
 from enum import Enum
-from typing import Optional, TypeVar
+from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
@@ -284,7 +284,7 @@ class MockLLMProvider(LLMProvider):
         prompt_lower = prompt.lower()
 
         # Default mock data
-        mock_data = {
+        mock_data: dict[str, Any] = {
             "event_score": float(base_score),
             "evidence_strength": float(base_score - 5),
             "market_relevance": float(base_score + 5),

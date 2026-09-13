@@ -2,7 +2,6 @@
 Tests for Reconnection Strategy
 """
 
-import pytest
 
 from polysignal.ingestion.reconnection_strategy import ReconnectionStrategy
 

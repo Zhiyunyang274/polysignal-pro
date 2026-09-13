@@ -16,35 +16,30 @@ Coverage:
 """
 
 import asyncio
-import json
 import os
 import sys
-import tempfile
 from datetime import datetime, timedelta
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from polysignal.ingestion.api_types import CLOBOrderbook, CLOBPriceLevel
+from polysignal.ingestion.data_converter import DataConverter
+from polysignal.models.market import Market, MarketCategory, MarketStatus
+from polysignal.models.orderbook import OrderBookSide, OrderBookSnapshot, PriceLevel
+from polysignal.models.risk import RiskAction, RiskDecision
+from polysignal.models.signal import ComponentScores, Signal, SignalSide
+from polysignal.risk.risk_governor import RiskGovernor
+from polysignal.strategies.base import StrategyContext
+from polysignal.strategies.yes_no_mispricing import YesNoMispricingStrategy
 from scripts.run_paper import (
     PaperTradingRunner,
     RunConfig,
     RunStatistics,
 )
-
-from polysignal.models.market import Market, MarketCategory, MarketStatus
-from polysignal.models.orderbook import OrderBookSnapshot, OrderBookSide, PriceLevel
-from polysignal.models.signal import Signal, SignalSide, ComponentScores
-from polysignal.models.risk import RiskAction, RiskDecision, RiskContext
-from polysignal.ingestion.api_types import CLOBOrderbook, CLOBPriceLevel
-from polysignal.ingestion.data_converter import DataConverter
-from polysignal.strategies.yes_no_mispricing import YesNoMispricingStrategy
-from polysignal.strategies.base import StrategyContext
-from polysignal.risk.risk_governor import RiskGovernor
-
 
 # =============================================================================
 # Fixtures
@@ -236,14 +231,14 @@ class TestRiskContextConstruction:
 
         # Verify context was constructed correctly
         assert captured_context is not None
-        assert captured_context.live_trading_enabled == False
-        assert captured_context.allow_auto_execution == False
-        assert captured_context.api_healthy == True
-        assert captured_context.websocket_healthy == True
-        assert captured_context.price_stale == False  # orderbook.is_stale = False
-        assert captured_context.market_tradable == True
-        assert captured_context.market_ambiguous == False
-        assert captured_context.market_forbidden == False
+        assert not captured_context.live_trading_enabled
+        assert not captured_context.allow_auto_execution
+        assert captured_context.api_healthy
+        assert captured_context.websocket_healthy
+        assert not captured_context.price_stale  # orderbook.is_stale = False
+        assert captured_context.market_tradable
+        assert not captured_context.market_ambiguous
+        assert not captured_context.market_forbidden
 
     def test_risk_context_with_stale_orderbook(self, mock_config, run_config, mock_market):
         """Test RiskContext correctly indicates stale price"""
@@ -305,7 +300,7 @@ class TestRiskContextConstruction:
 
         asyncio.run(runner._process_signal(signal, mock_market, stale_orderbook))
 
-        assert captured_context.price_stale == True
+        assert captured_context.price_stale
 
 
 # =============================================================================

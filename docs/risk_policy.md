@@ -60,6 +60,24 @@ weekly_max_loss_pct: 0.08
 max_consecutive_losses: 3
 ```
 
+### 3.1 Wired Guards（2026-09-11 起，Iteration 006）
+
+两个守卫模块已从 stub 接入 Risk Governor 的硬拒绝链，不再是名义防线：
+
+* `polysignal/risk/exposure_guard.py` — **ExposureGuard（硬拒绝）**
+  * `market_exposure_limit`：评估时该市场已有敞口 ≥ `max_account_capital_usd × max_market_exposure_pct` → 拒绝
+  * `strategy_exposure_limit`：该策略已有敞口 ≥ `max_account_capital_usd × max_strategy_exposure_pct` → 拒绝
+  * 语义为 pre-trade 检查：约束的是"已有"敞口；单笔请求规模由执行层
+    （PaperTrader/SimBroker）与 AccountState 现金守卫约束，`max_position_pct`
+    是执行层 sizing 参数，不是 Governor 的 pre-trade 拒绝条件。
+* `polysignal/risk/liquidity_guard.py` — **LiquidityGuard（单一事实来源）**
+  * 承接原 Risk Governor 内嵌的 spread/depth 检查（`spread_too_wide`、
+    side-aware `depth_too_thin`），行为逐字保留；`orderbook_stale` 与
+    `volume_too_low` 仍属 Governor（非盘口深度问题）。
+
+_runner 义务：必须把真实账户状态传入 RiskContext（AccountState.risk_context_fields），
+否则敞口限制形同虚设。_
+
 含义：
 
 * 单笔最大仓位：账户资金 1%

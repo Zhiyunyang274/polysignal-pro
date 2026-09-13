@@ -9,9 +9,9 @@ from pathlib import Path
 
 import yaml
 
-from polysignal.shadow.cross_market_convergence import CrossMarketConvergenceObservation
 import scripts.analyze_cross_market_convergence_dataset as analyzer
 import scripts.monitor_cross_market_convergence as monitor
+from polysignal.shadow.cross_market_convergence import CrossMarketConvergenceObservation
 
 
 def obs(

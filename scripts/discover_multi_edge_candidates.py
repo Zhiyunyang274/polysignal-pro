@@ -17,12 +17,17 @@ import json
 from datetime import datetime
 from pathlib import Path
 from statistics import mean
-from typing import Any, Optional
+from typing import Any
 
 from polysignal.ingestion.api_errors import CLOBError
 from polysignal.ingestion.api_types import CLOBOrderbook
 from polysignal.ingestion.clob_client import CLOBReadOnlyClient
-from polysignal.shadow.edge_candidates import EDGE_CANDIDATE_FIELDS, EdgeAction, EdgeCandidate, EdgeType
+from polysignal.shadow.edge_candidates import (
+    EDGE_CANDIDATE_FIELDS,
+    EdgeAction,
+    EdgeCandidate,
+    EdgeType,
+)
 from polysignal.shadow.feedback_gate import (
     PROBABILITY_EDGE_TYPES,
     EdgeTypeGate,
@@ -43,11 +48,10 @@ from scripts.discover_executable_edges import (
 )
 from scripts.run_shadow_paper_loop import safe_float
 
-
 FEEDBACK_SUMMARY_NAME = "edge_feedback_calibration_summary.json"
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Discover read-only multi-edge candidates")
     parser.add_argument("--max_markets", type=int, default=500)
     parser.add_argument("--min_volume", type=float, default=1000.0)
@@ -116,7 +120,7 @@ def apply_feedback_gates(candidates: list[EdgeCandidate], gates: dict[str, EdgeT
             _append_once(candidate.evidence, "confidence_not_predictive")
 
 
-def book_features(orderbook: Optional[CLOBOrderbook]) -> dict[str, float]:
+def book_features(orderbook: CLOBOrderbook | None) -> dict[str, float]:
     if orderbook is None:
         return {
             "best_bid": 0.0,
@@ -462,8 +466,8 @@ def candidate_to_output(candidate: EdgeCandidate) -> dict[str, Any]:
 
 async def discover_multi_edges(
     args: argparse.Namespace,
-    gamma_client: Optional[Any] = None,
-    clob_client: Optional[Any] = None,
+    gamma_client: Any | None = None,
+    clob_client: Any | None = None,
 ) -> tuple[list[EdgeCandidate], dict[str, Any]]:
     started = datetime.utcnow()
     timestamp = started.isoformat()
@@ -796,7 +800,7 @@ async def run_async(args: argparse.Namespace) -> tuple[list[EdgeCandidate], dict
     return await discover_multi_edges(args)
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     candidates, summary = asyncio.run(run_async(args))
     print_summary(summary, args.dry_run)

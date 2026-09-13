@@ -10,7 +10,7 @@ import os
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Literal
@@ -22,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from polysignal.shadow.expiry_provenance import expiry_integrity_reasons
 from polysignal.shadow.gamma_raw_snapshot import canonical_json_bytes
 from polysignal.shadow.resolution_provenance import resolution_rules_sha256
+from polysignal.utils.time import utc_now
 
 HISTORICAL_BARRIER_ADAPTER_VERSION = "binance_1m_barrier_adapter_v1"
 RULE_WINDOW_ADAPTER_VERSION = "explicit_rule_window_adapter_v1"
@@ -29,12 +30,30 @@ HISTORICAL_BARRIER_SCHEMA_VERSION = "historical_barrier_evidence_v1"
 HISTORICAL_BARRIER_STATUS_VERIFIED = "verified_full_coverage"
 HISTORICAL_BARRIER_STATUS_NOT_REQUIRED = "not_required"
 HISTORICAL_BARRIER_SOURCE = "binance_public_klines"
+COINBASE_HISTORICAL_BARRIER_SOURCE = "coinbase_exchange_candles"
+# ADR-027 (user-approved 2026-09-12): historical barrier candle evidence may come
+# from Binance (primary) or Coinbase (fallback) — both public, 1-minute OHLC,
+# allowlisted hosts. Provenance records which source served the data.
+VERIFIED_HISTORICAL_BARRIER_SOURCES = {
+    HISTORICAL_BARRIER_SOURCE,
+    COINBASE_HISTORICAL_BARRIER_SOURCE,
+}
 HISTORICAL_BARRIER_ORIGIN = "resolution_rules_explicit_window+binance_public_klines"
 BINANCE_KLINES_LOCATOR = "https://api.binance.com/api/v3/klines"
+COINBASE_SYMBOLS = {
+    "BTC": "BTC-USD", "ETH": "ETH-USD", "SOL": "SOL-USD",
+    "XRP": "XRP-USD", "DOGE": "DOGE-USD", "BNB": "BNB-USD", "LINK": "LINK-USD",
+}
+COINBASE_KLINES_LOCATOR_TEMPLATE = (
+    "https://api.exchange.coinbase.com/products/{pair}/candles"
+)
 BINANCE_TIME_LOCATOR = "https://api.binance.com/api/v3/time"
 BINANCE_INTERVAL = "1m"
 BINANCE_INTERVAL_MS = 60_000
-BINANCE_SYMBOLS = {"BTC": "BTCUSDT", "ETH": "ETHUSDT", "SOL": "SOLUSDT"}
+BINANCE_SYMBOLS = {
+    "BTC": "BTCUSDT", "ETH": "ETHUSDT", "SOL": "SOLUSDT",
+    "XRP": "XRPUSDT", "DOGE": "DOGEUSDT", "BNB": "BNBUSDT", "LINK": "LINKUSDT",
+}
 
 _MONTHS = {
     "january": 1,
@@ -192,7 +211,7 @@ class HistoricalArtifactConflictError(RuntimeError):
 def _aware_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         raise ValueError("timestamp must be timezone-aware")
-    return value.astimezone(timezone.utc)
+    return value.astimezone(UTC)
 
 
 def _iso_utc(value: datetime) -> str:
@@ -202,7 +221,7 @@ def _iso_utc(value: datetime) -> str:
 
 
 def _ms_iso(value: int) -> str:
-    return _iso_utc(datetime.fromtimestamp(value / 1000.0, tz=timezone.utc))
+    return _iso_utc(datetime.fromtimestamp(value / 1000.0, tz=UTC))
 
 
 def _parse_utc(value: Any) -> datetime | None:
@@ -215,7 +234,7 @@ def _parse_utc(value: Any) -> datetime | None:
         return None
     if parsed.tzinfo is None:
         return None
-    return parsed.astimezone(timezone.utc)
+    return parsed.astimezone(UTC)
 
 
 def _parse_clock(value: str) -> tuple[int, int] | None:
@@ -244,7 +263,7 @@ def _match_datetime(match: re.Match[str], prefix: str, timezone_name: str) -> da
         )
     except (KeyError, ValueError):
         return None
-    return local.astimezone(timezone.utc)
+    return local.astimezone(UTC)
 
 
 def _window_digest(window: RuleObservationWindow) -> str:
@@ -678,6 +697,363 @@ class BinanceHistoricalKlineClient:
         )
 
 
+COINBASE_CANDLES_PAGE_LIMIT = 300  # Coinbase returns max 300 candles per request
+
+
+def _expected_symbol_for_source(asset: str, source: str) -> str:
+    normalized = asset.strip().upper()
+    if source == COINBASE_HISTORICAL_BARRIER_SOURCE:
+        return COINBASE_SYMBOLS.get(normalized, "")
+    return BINANCE_SYMBOLS.get(normalized, "")
+
+
+def _verified_locator_for_source(source: str, symbol: str) -> str:
+    if source == COINBASE_HISTORICAL_BARRIER_SOURCE:
+        return COINBASE_KLINES_LOCATOR_TEMPLATE.format(pair=symbol)
+    return BINANCE_KLINES_LOCATOR
+
+
+def _parse_coinbase_candle(raw: Any) -> tuple[BinanceKline | None, str]:
+    """Map one Coinbase candle [time, low, high, open, close, volume] to the
+    unified 1-minute row shape. Coinbase does not provide quote volume or
+    trade counts; those fields persist as "0" (barrier verification uses only
+    open/high/low/close prices)."""
+    if not isinstance(raw, (list, tuple)) or len(raw) != 6:
+        return None, "invalid_coinbase_candle_row"
+    try:
+        time_seconds = int(raw[0])
+        low = Decimal(str(raw[1]))
+        high = Decimal(str(raw[2]))
+        open_price = Decimal(str(raw[3]))
+        close_price = Decimal(str(raw[4]))
+        volume = Decimal(str(raw[5]))
+    except (TypeError, ValueError, InvalidOperation):
+        return None, "invalid_coinbase_candle_values"
+    for value in (low, high, open_price, close_price, volume):
+        if not value.is_finite() or value < 0:
+            return None, "invalid_coinbase_candle_values"
+    if time_seconds <= 0 or time_seconds % 60 != 0:
+        return None, "invalid_coinbase_candle_time"
+    open_time_ms = time_seconds * 1000
+    return (
+        BinanceKline(
+            open_time_ms=open_time_ms,
+            open_price=str(open_price),
+            high_price=str(high),
+            low_price=str(low),
+            close_price=str(close_price),
+            volume=str(volume),
+            close_time_ms=open_time_ms + 59_999,
+            quote_asset_volume="0",
+            trade_count=0,
+            taker_buy_base_volume="0",
+            taker_buy_quote_volume="0",
+            ignore="0",
+        ),
+        "",
+    )
+
+
+class CoinbaseHistoricalCandleClient:
+    """Read-only Coinbase Exchange 1m candle client with fixed-range pagination.
+
+    Implements the same fetch_klines contract as BinanceHistoricalKlineClient
+    (same validation rules: minute alignment, contiguity, monotonicity,
+    in-range rows) so the multi-source failover can compare like with like.
+    """
+
+    def __init__(
+        self,
+        *,
+        base_url: str = "https://api.exchange.coinbase.com",
+        timeout_seconds: float = 15.0,
+        max_retries: int = 2,
+        retry_backoff_seconds: float = 0.25,
+        page_limit: int = COINBASE_CANDLES_PAGE_LIMIT,
+        max_pages: int = 5000,
+        max_concurrency: int = 4,
+        transport: httpx.AsyncBaseTransport | None = None,
+    ):
+        self.base_url = base_url.rstrip("/")
+        self.timeout_seconds = timeout_seconds
+        self.max_retries = max(0, max_retries)
+        self.retry_backoff_seconds = max(0.0, retry_backoff_seconds)
+        self.page_limit = max(1, min(COINBASE_CANDLES_PAGE_LIMIT, page_limit))
+        self.max_pages = max(1, max_pages)
+        self.max_concurrency = max(1, max_concurrency)
+        self.transport = transport
+
+    async def _get_candles(
+        self,
+        client: httpx.AsyncClient,
+        pair: str,
+        start_iso: str,
+        end_iso: str,
+    ) -> tuple[Any | None, str, int]:
+        last_error = "coinbase_request_failed"
+        for attempt in range(self.max_retries + 1):
+            try:
+                response = await client.get(
+                    f"/products/{pair}/candles",
+                    params={"granularity": 60, "start": start_iso, "end": end_iso},
+                )
+            except httpx.TimeoutException:
+                last_error = "coinbase_timeout"
+            except httpx.RequestError:
+                last_error = "coinbase_request_error"
+            else:
+                if response.status_code < 400:
+                    try:
+                        return response.json(), "", attempt + 1
+                    except ValueError:
+                        return None, "coinbase_invalid_json", attempt + 1
+                last_error = f"coinbase_http_{response.status_code}"
+                if response.status_code != 429 and response.status_code < 500:
+                    return None, last_error, attempt + 1
+            if attempt < self.max_retries and self.retry_backoff_seconds:
+                await asyncio.sleep(self.retry_backoff_seconds * (2**attempt))
+        return None, last_error, self.max_retries + 1
+
+    async def fetch_klines(
+        self,
+        *,
+        symbol: str,
+        start_time: datetime,
+        end_time: datetime,
+    ) -> BinanceKlineFetchResult:
+        start = _aware_utc(start_time)
+        end = _aware_utc(end_time)
+        start_ms = int(start.timestamp() * 1000)
+        end_ms = int(end.timestamp() * 1000)
+        normalized_start = _iso_utc(start)
+        normalized_end = _iso_utc(end)
+        locator = COINBASE_KLINES_LOCATOR_TEMPLATE.format(pair=symbol)
+
+        def empty_result(status: str, error: str = "") -> BinanceKlineFetchResult:
+            return BinanceKlineFetchResult(
+                status=status,
+                source=COINBASE_HISTORICAL_BARRIER_SOURCE,
+                locator=locator,
+                symbol=symbol,
+                start_time=normalized_start,
+                end_time=normalized_end,
+                error=error,
+            )
+
+        if symbol not in set(COINBASE_SYMBOLS.values()):
+            return empty_result("unsupported_coinbase_symbol")
+        if start >= end:
+            return empty_result("invalid_kline_fetch_range")
+        if start_ms % BINANCE_INTERVAL_MS:
+            return empty_result("kline_start_not_minute_aligned")
+
+        expected_total = math.ceil((end_ms - start_ms) / BINANCE_INTERVAL_MS)
+        page_count = math.ceil(expected_total / self.page_limit)
+        if page_count > self.max_pages:
+            return empty_result("kline_page_limit_exceeded")
+
+        chunks: list[tuple[int, int, tuple[int, ...]]] = []
+        cursor = start_ms
+        while cursor < end_ms:
+            chunk_end = min(cursor + self.page_limit * BINANCE_INTERVAL_MS, end_ms)
+            expected = tuple(range(cursor, chunk_end, BINANCE_INTERVAL_MS))
+            chunks.append((cursor, chunk_end, expected))
+            cursor = chunk_end if chunk_end % BINANCE_INTERVAL_MS == 0 else end_ms
+
+        request_started = utc_now()
+        async with httpx.AsyncClient(
+            base_url=self.base_url,
+            timeout=self.timeout_seconds,
+            transport=self.transport,
+        ) as client:
+            semaphore = asyncio.Semaphore(self.max_concurrency)
+
+            async def fetch_chunk(
+                sequence: int,
+                chunk: tuple[int, int, tuple[int, ...]],
+            ) -> tuple[BinanceKlinePageAudit, tuple[BinanceKline, ...], tuple[int, ...]]:
+                chunk_start, chunk_end, expected = chunk
+                start_iso = _iso_utc(datetime.fromtimestamp(chunk_start / 1000, tz=UTC))
+                end_iso = _iso_utc(datetime.fromtimestamp((chunk_end - 1) / 1000, tz=UTC))
+                async with semaphore:
+                    payload, error, attempts = await self._get_candles(
+                        client, symbol, start_iso, end_iso
+                    )
+                if error:
+                    return (
+                        BinanceKlinePageAudit(
+                            sequence=sequence,
+                            requested_start_ms=chunk_start,
+                            requested_end_ms=chunk_end,
+                            expected_candle_count=len(expected),
+                            received_candle_count=0,
+                            attempts=attempts,
+                            status="error",
+                            error=error,
+                        ),
+                        (),
+                        expected,
+                    )
+                if not isinstance(payload, list):
+                    error = "invalid_candle_page_payload"
+                    return (
+                        BinanceKlinePageAudit(
+                            sequence=sequence,
+                            requested_start_ms=chunk_start,
+                            requested_end_ms=chunk_end,
+                            expected_candle_count=len(expected),
+                            received_candle_count=0,
+                            attempts=attempts,
+                            status="error",
+                            error=error,
+                        ),
+                        (),
+                        expected,
+                    )
+
+                candles: list[BinanceKline] = []
+                row_error = ""
+                for raw in payload:
+                    candle, row_error = _parse_coinbase_candle(raw)
+                    if row_error or candle is None:
+                        break
+                    candles.append(candle)
+                received_opens = tuple(candle.open_time_ms for candle in candles)
+                missing = tuple(
+                    open_time for open_time in expected if open_time not in received_opens
+                )
+                if row_error:
+                    status = "error"
+                elif len(set(received_opens)) != len(received_opens):
+                    row_error = "duplicate_klines"
+                    status = "error"
+                elif any(open_time not in expected for open_time in received_opens):
+                    row_error = "out_of_range_klines"
+                    status = "error"
+                elif missing:
+                    status = "partial"
+                else:
+                    status = "complete"
+                return (
+                    BinanceKlinePageAudit(
+                        sequence=sequence,
+                        requested_start_ms=chunk_start,
+                        requested_end_ms=chunk_end,
+                        expected_candle_count=len(expected),
+                        received_candle_count=len(candles),
+                        attempts=attempts,
+                        status=status,
+                        error=row_error,
+                    ),
+                    tuple(candles),
+                    missing,
+                )
+
+            pages: list[BinanceKlinePageAudit] = []
+            candle_lists: list[tuple[BinanceKline, ...]] = []
+            missing_lists: list[tuple[int, ...]] = []
+            errors: list[str] = []
+
+            results = await asyncio.gather(
+                *(fetch_chunk(i, chunk) for i, chunk in enumerate(chunks))
+            )
+            for page_audit, page_candles, page_missing in results:
+                pages.append(page_audit)
+                candle_lists.append(page_candles)
+                missing_lists.append(page_missing)
+                if page_audit.error:
+                    errors.append(page_audit.error)
+
+        request_finished = utc_now()
+        candles = tuple(
+            candle
+            for page in candle_lists
+            for candle in sorted(page, key=lambda c: c.open_time_ms)
+        )
+        missing_opens = tuple(
+            open_time for page in missing_lists for open_time in page
+        )
+        if errors:
+            error = errors[0]
+            status = "error"
+        elif missing_opens:
+            status = "partial_coverage"
+            error = status
+        else:
+            all_opens = tuple(candle.open_time_ms for candle in candles)
+            expected_opens = tuple(range(start_ms, end_ms, BINANCE_INTERVAL_MS))
+            if all_opens != expected_opens:
+                status = "non_contiguous_kline_coverage"
+                error = status
+            else:
+                status = "complete"
+                error = ""
+
+        return BinanceKlineFetchResult(
+            status=status,
+            source=COINBASE_HISTORICAL_BARRIER_SOURCE,
+            locator=locator,
+            server_time_before=_iso_utc(request_started),
+            server_time_after=_iso_utc(request_finished),
+            pages=pages,
+            candles=candles,
+            missing_ranges=_missing_ranges(missing_opens, end_ms),
+            error=error,
+            symbol=symbol,
+            start_time=normalized_start,
+            end_time=normalized_end,
+        )
+
+
+class MultiSourceHistoricalKlineClient:
+    """Failover kline client: Binance primary, Coinbase fallback (ADR-027).
+
+    Failover triggers ONLY on source-level failures (HTTP errors, timeouts,
+    invalid responses). Range-level outcomes (partial coverage, contiguity
+    problems) are data properties that would fail identically on the fallback,
+    so the primary result is returned unchanged for auditability.
+    """
+
+    def __init__(
+        self,
+        *,
+        binance: BinanceHistoricalKlineClient | None = None,
+        coinbase: CoinbaseHistoricalCandleClient | None = None,
+    ):
+        self.binance = binance or BinanceHistoricalKlineClient()
+        self.coinbase = coinbase or CoinbaseHistoricalCandleClient()
+        self._asset_by_binance_symbol = {v: k for k, v in BINANCE_SYMBOLS.items()}
+
+    async def fetch_klines(
+        self,
+        *,
+        symbol: str,
+        start_time: datetime,
+        end_time: datetime,
+    ) -> BinanceKlineFetchResult:
+        primary = await self.binance.fetch_klines(
+            symbol=symbol, start_time=start_time, end_time=end_time
+        )
+        if primary.status == "complete":
+            return primary
+        source_failure = primary.error.startswith("binance_http_") or primary.error in {
+            "binance_timeout",
+            "binance_request_error",
+            "binance_request_failed",
+            "binance_invalid_json",
+            "invalid_binance_server_time",
+        }
+        if not source_failure:
+            return primary
+        asset = self._asset_by_binance_symbol.get(symbol)
+        if asset is None:
+            return primary
+        fallback = await self.coinbase.fetch_klines(
+            symbol=COINBASE_SYMBOLS[asset], start_time=start_time, end_time=end_time
+        )
+        return fallback if fallback.status == "complete" else primary
+
+
 def _write_content_addressed(
     directory: Path,
     prefix: str,
@@ -1042,10 +1418,11 @@ def merge_kline_fetch_results(
         status = "merged_kline_interval_mismatch"
         error = status
     elif (
-        base.source != HISTORICAL_BARRIER_SOURCE
-        or tail.source != HISTORICAL_BARRIER_SOURCE
-        or base.locator != BINANCE_KLINES_LOCATOR
-        or tail.locator != BINANCE_KLINES_LOCATOR
+        not base.source
+        or base.source != tail.source
+        or base.source not in VERIFIED_HISTORICAL_BARRIER_SOURCES
+        or base.locator != tail.locator
+        or base.locator != _verified_locator_for_source(base.source, base.symbol)
     ):
         status = "merged_kline_source_mismatch"
         error = status
@@ -1141,7 +1518,7 @@ def evaluate_historical_barrier(
     """Persist source/evaluation artifacts and fail closed on any incomplete evidence."""
 
     entry = _aware_utc(entry_time)
-    expected_symbol = BINANCE_SYMBOLS.get(asset.strip().upper(), "")
+    expected_symbol = _expected_symbol_for_source(asset.strip().upper(), fetch_result.source)
     try:
         threshold = Decimal(str(threshold_price))
     except InvalidOperation:
@@ -1211,9 +1588,11 @@ def evaluate_historical_barrier(
         status = fetch_result.status or "partial_coverage"
     elif fetch_result.interval != BINANCE_INTERVAL:
         status = "historical_evidence_interval_mismatch"
-    elif fetch_result.source != HISTORICAL_BARRIER_SOURCE:
+    elif fetch_result.source not in VERIFIED_HISTORICAL_BARRIER_SOURCES:
         status = "historical_evidence_source_mismatch"
-    elif fetch_result.locator != BINANCE_KLINES_LOCATOR:
+    elif fetch_result.locator != _verified_locator_for_source(
+        fetch_result.source, fetch_result.symbol
+    ):
         status = "historical_evidence_locator_mismatch"
     elif fetch_result.start_time != window.start_time:
         status = "historical_evidence_start_mismatch"
@@ -1253,8 +1632,8 @@ def evaluate_historical_barrier(
         "schema_version": HISTORICAL_BARRIER_SCHEMA_VERSION,
         "adapter_version": HISTORICAL_BARRIER_ADAPTER_VERSION,
         "origin": HISTORICAL_BARRIER_ORIGIN,
-        "source": HISTORICAL_BARRIER_SOURCE,
-        "locator": BINANCE_KLINES_LOCATOR,
+        "source": fetch_result.source,
+        "locator": fetch_result.locator,
         "asset": asset.strip().upper(),
         "symbol": fetch_result.symbol,
         "interval": fetch_result.interval,

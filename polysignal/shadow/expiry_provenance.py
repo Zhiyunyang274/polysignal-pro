@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -75,11 +75,11 @@ def _parse_iso_time(value: Any) -> datetime | None:
         return None
     if parsed.tzinfo is None:
         return parsed
-    return parsed.astimezone(timezone.utc)
+    return parsed.astimezone(UTC)
 
 
 def _iso_utc(value: datetime) -> str:
-    return value.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return value.astimezone(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def _rules_timezone(rules: str) -> tuple[str, str]:
@@ -120,7 +120,7 @@ def _expiry_status(
     if canonical is None or canonical.tzinfo is None:
         return "invalid_canonical_expiry_time"
     try:
-        expected = local.replace(tzinfo=ZoneInfo(expiry_timezone)).astimezone(timezone.utc)
+        expected = local.replace(tzinfo=ZoneInfo(expiry_timezone)).astimezone(UTC)
     except ZoneInfoNotFoundError:
         return "invalid_resolution_rules_timezone"
     if canonical != expected:
@@ -168,7 +168,7 @@ def resolve_expiry_provenance(
     if local is not None and local.tzinfo is None and expiry_timezone:
         try:
             expiry_time = _iso_utc(
-                local.replace(tzinfo=ZoneInfo(expiry_timezone)).astimezone(timezone.utc)
+                local.replace(tzinfo=ZoneInfo(expiry_timezone)).astimezone(UTC)
             )
         except ZoneInfoNotFoundError:
             expiry_time = ""

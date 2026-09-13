@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 
 from polysignal.shadow.models import ExitReason, ShadowSide, ShadowTrade
 from polysignal.shadow.pnl import calculate_return_pct
@@ -23,7 +23,7 @@ class ExitDecision:
     should_exit: bool
     reason: ExitReason
     exit_time: str
-    exit_price: Optional[float]
+    exit_price: float | None
     holding_minutes: float
 
 
@@ -46,18 +46,17 @@ def observation_time(entry_time: datetime, index: int, obs: dict[str, Any]) -> d
     return entry_time + timedelta(minutes=(index + 1) * 60)
 
 
-def price_from_observation(obs: dict[str, Any], trade: ShadowTrade) -> Optional[float]:
+def price_from_observation(obs: dict[str, Any], trade: ShadowTrade) -> float | None:
     """Return side-specific executable exit bid.
 
     combined_ask is intentionally ignored because it is a market-level feature,
     not an executable side-specific exit price.
     """
-    if trade.side == ShadowSide.NO:
-        value = obs.get("no_best_bid")
-    else:
-        value = obs.get("yes_best_bid")
+    value = obs.get("no_best_bid") if trade.side == ShadowSide.NO else obs.get("yes_best_bid")
     if value in (None, ""):
         value = obs.get("price")
+    if value is None:
+        return None
     try:
         return float(value)
     except (TypeError, ValueError):
@@ -67,7 +66,7 @@ def price_from_observation(obs: dict[str, Any], trade: ShadowTrade) -> Optional[
 def decide_exit(
     trade: ShadowTrade,
     observations: list[dict[str, Any]],
-    config: Optional[ExitRuleConfig] = None,
+    config: ExitRuleConfig | None = None,
 ) -> ExitDecision:
     cfg = config or ExitRuleConfig()
     entry_time = parse_time(trade.entry_time)
@@ -83,7 +82,7 @@ def decide_exit(
         )
 
     last_time = entry_time
-    last_price: Optional[float] = None
+    last_price: float | None = None
     for index, obs in enumerate(observations):
         current_time = observation_time(entry_time, index, obs)
         current_price = price_from_observation(obs, trade)

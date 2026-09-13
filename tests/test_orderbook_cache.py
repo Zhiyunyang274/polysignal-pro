@@ -2,12 +2,11 @@
 Tests for OrderBook Cache
 """
 
-import pytest
 from datetime import datetime, timedelta
 
 from polysignal.ingestion.orderbook_cache import (
-    TokenOrderBookCache,
     OrderBookCacheManager,
+    TokenOrderBookCache,
 )
 from polysignal.models.orderbook import PriceLevel
 

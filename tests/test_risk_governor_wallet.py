@@ -5,26 +5,20 @@ Tests the integration between Risk Governor and Wallet Intelligence Engine,
 particularly the dual safeguard for wallet_signal_only detection.
 """
 
-import pytest
-
 from datetime import datetime, timedelta
 
-from polysignal.models.wallet import WalletSpecialization
-from polysignal.models.market import Market, MarketCategory, MarketStatus
-from polysignal.models.signal import Signal, SignalSide, ComponentScores
-from polysignal.models.risk import RiskContext, RiskAction
-from polysignal.models.orderbook import OrderBookSnapshot
-from polysignal.risk.risk_governor import RiskGovernor
+import pytest
+
 from polysignal.engines.wallet_intelligence import WalletIntelligenceEngine
+from polysignal.models.market import Market, MarketCategory, MarketStatus
+from polysignal.models.risk import RiskAction, RiskContext
+from polysignal.models.signal import ComponentScores, Signal, SignalSide
+from polysignal.risk.risk_governor import RiskGovernor
 from tests.fixtures.wallets import (
-    create_mock_watchlist,
-    create_wallet_market,
-    create_politics_market,
-    create_profiles_dict,
     create_consensus_activities_yes,
-    create_wallet_market_activity,
-    create_high_copy_risk_wallet,
-    MOCK_WALLET_ADDRESSES,
+    create_mock_watchlist,
+    create_profiles_dict,
+    create_wallet_market,
 )
 
 

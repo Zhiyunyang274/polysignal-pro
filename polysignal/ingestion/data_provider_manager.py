@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from polysignal.ingestion.api_errors import APIError
 from polysignal.ingestion.clob_client import CLOBReadOnlyClient
@@ -24,7 +24,6 @@ from polysignal.ingestion.mock_data_provider import MockDataProvider
 from polysignal.logging_config import get_logger
 from polysignal.models.market import Market, MarketList
 from polysignal.models.orderbook import OrderBookSnapshot
-
 
 logger = get_logger("polysignal.ingestion.data_provider_manager")
 
@@ -55,11 +54,11 @@ class DataProviderManager:
     def __init__(
         self,
         mode: DataMode = DataMode.MOCK,
-        gamma_client: Optional[GammaAPIClient] = None,
-        clob_client: Optional[CLOBReadOnlyClient] = None,
-        mock_provider: Optional[MockDataProvider] = None,
-        gamma_base_url: Optional[str] = None,
-        clob_base_url: Optional[str] = None,
+        gamma_client: GammaAPIClient | None = None,
+        clob_client: CLOBReadOnlyClient | None = None,
+        mock_provider: MockDataProvider | None = None,
+        gamma_base_url: str | None = None,
+        clob_base_url: str | None = None,
         timeout_seconds: float = 10.0,
         max_retries: int = 3,
     ):
@@ -101,7 +100,7 @@ class DataProviderManager:
 
         # Cache for market data
         self._markets_cache: dict[str, Market] = {}
-        self._cache_timestamp: Optional[datetime] = None
+        self._cache_timestamp: datetime | None = None
         self._cache_ttl_seconds = 60
 
     async def close(self) -> None:
@@ -191,9 +190,9 @@ class DataProviderManager:
         except APIError:
             raise
         except Exception as e:
-            raise APIError(f"Failed to get real markets: {e}")
+            raise APIError(f"Failed to get real markets: {e}") from e
 
-    async def get_orderbook(self, market_id: str) -> Optional[OrderBookSnapshot]:
+    async def get_orderbook(self, market_id: str) -> OrderBookSnapshot | None:
         """
         Get orderbook for a market.
 
@@ -231,7 +230,7 @@ class DataProviderManager:
             )
             return self.mock_provider.get_orderbook_snapshot(market_id)
 
-    async def _get_real_orderbook(self, market_id: str) -> Optional[OrderBookSnapshot]:
+    async def _get_real_orderbook(self, market_id: str) -> OrderBookSnapshot | None:
         """
         Get orderbook from real API.
 
@@ -299,9 +298,9 @@ class DataProviderManager:
         except APIError:
             raise
         except Exception as e:
-            raise APIError(f"Failed to get real orderbook: {e}")
+            raise APIError(f"Failed to get real orderbook: {e}") from e
 
-    async def _get_market_info(self, market_id: str) -> Optional[Market]:
+    async def _get_market_info(self, market_id: str) -> Market | None:
         """
         Get market info from cache or API.
 

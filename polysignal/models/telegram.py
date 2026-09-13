@@ -6,7 +6,6 @@ All trading decisions are made by Risk Governor automatically.
 """
 
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -44,13 +43,13 @@ class SystemPauseState(str, Enum):
 class TelegramActionLog(BaseModel):
     """Log entry for Telegram action"""
     action_id: str = Field(..., description="Unique action ID")
-    signal_id: Optional[str] = Field(None, description="Associated signal ID")
+    signal_id: str | None = Field(None, description="Associated signal ID")
     action: TelegramAction = Field(..., description="Action type")
     user_id: int = Field(..., description="Telegram user ID")
-    username: Optional[str] = Field(None, description="Telegram username")
-    market_id: Optional[str] = Field(None, description="Market ID")
-    strategy_name: Optional[str] = Field(None, description="Strategy name")
-    wallet_address: Optional[str] = Field(None, description="Wallet address")
+    username: str | None = Field(None, description="Telegram username")
+    market_id: str | None = Field(None, description="Market ID")
+    strategy_name: str | None = Field(None, description="Strategy name")
+    wallet_address: str | None = Field(None, description="Wallet address")
     result: TelegramActionResult = Field(..., description="Action result")
     result_message: str = Field(..., description="Result message")
     timestamp: str = Field(..., description="Timestamp ISO format")
@@ -58,8 +57,8 @@ class TelegramActionLog(BaseModel):
 
 class IgnoreRule(BaseModel):
     """Rule to ignore future signals"""
-    market_id: Optional[str] = Field(None, description="Market ID")
-    strategy_name: Optional[str] = Field(None, description="Strategy name")
+    market_id: str | None = Field(None, description="Market ID")
+    strategy_name: str | None = Field(None, description="Strategy name")
     added_by: str = Field(..., description="Telegram user ID")
     added_at: str = Field(..., description="Timestamp ISO format")
 
@@ -68,7 +67,7 @@ class BlacklistEntry(BaseModel):
     """Blacklist entry"""
     target_type: str = Field(..., description="Type: market, category, wallet, strategy")
     target_id: str = Field(..., description="Target identifier")
-    reason: Optional[str] = Field(None, description="Reason for blacklisting")
+    reason: str | None = Field(None, description="Reason for blacklisting")
     added_by: str = Field(..., description="Telegram user ID")
     added_at: str = Field(..., description="Timestamp ISO format")
 
@@ -78,7 +77,7 @@ class WalletWatchlistRuntime(BaseModel):
     wallet_address: str = Field(..., description="Wallet address")
     added_by: str = Field(..., description="Telegram user ID")
     added_at: str = Field(..., description="Timestamp ISO format")
-    notes: Optional[str] = Field(None, description="Optional notes")
+    notes: str | None = Field(None, description="Optional notes")
 
 
 class SignalReview(BaseModel):
@@ -86,7 +85,7 @@ class SignalReview(BaseModel):
     signal_id: str = Field(..., description="Signal ID")
     reviewed_by: str = Field(..., description="Telegram user ID")
     reviewed_at: str = Field(..., description="Timestamp ISO format")
-    notes: Optional[str] = Field(None, description="Optional notes")
+    notes: str | None = Field(None, description="Optional notes")
 
 
 class TelegramAlertMessage(BaseModel):
@@ -103,10 +102,10 @@ class TelegramAlertMessage(BaseModel):
     hard_reject_reasons: list[str]
     action: str
     explanation: str
-    paper_order_id: Optional[str] = None
-    paper_order_status: Optional[str] = None
-    paper_filled_size: Optional[float] = None
-    paper_filled_price: Optional[float] = None
+    paper_order_id: str | None = None
+    paper_order_status: str | None = None
+    paper_filled_size: float | None = None
+    paper_filled_price: float | None = None
     timestamp: str
 
     def format_message(self) -> str:
@@ -146,11 +145,11 @@ class TelegramAlertMessage(BaseModel):
         if self.action == "PAPER_TRADE":
             lines.append("✅ Action: PAPER_TRADE (自动执行)")
         elif self.action == "HARD_REJECT":
-            lines.append(f"🚫 Action: HARD_REJECT")
+            lines.append("🚫 Action: HARD_REJECT")
         elif self.action == "ALERT":
-            lines.append(f"⚠️ Action: ALERT")
+            lines.append("⚠️ Action: ALERT")
         elif self.action == "MANUAL_REVIEW":
-            lines.append(f"👁️ Action: MANUAL_REVIEW")
+            lines.append("👁️ Action: MANUAL_REVIEW")
 
         # Risk flags
         if self.risk_flags:

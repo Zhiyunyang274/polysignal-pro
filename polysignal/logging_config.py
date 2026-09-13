@@ -6,7 +6,7 @@ Logging Configuration - Structured logging with structlog
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import cast
 
 import structlog
 from rich.console import Console
@@ -15,7 +15,7 @@ from rich.logging import RichHandler
 
 def setup_logging(
     level: str = "INFO",
-    log_file: Optional[str] = None,
+    log_file: str | None = None,
     use_rich: bool = True,
 ) -> structlog.stdlib.BoundLogger:
     """
@@ -88,10 +88,10 @@ def setup_logging(
         cache_logger_on_first_use=True,
     )
 
-    return structlog.get_logger()
+    return cast("structlog.stdlib.BoundLogger", structlog.get_logger())
 
 
-def get_logger(name: Optional[str] = None) -> structlog.stdlib.BoundLogger:
+def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
     """
     Get a structlog logger.
 
@@ -101,7 +101,7 @@ def get_logger(name: Optional[str] = None) -> structlog.stdlib.BoundLogger:
     Returns:
         Bound logger instance
     """
-    return structlog.get_logger(name)
+    return cast("structlog.stdlib.BoundLogger", structlog.get_logger(name))
 
 
 # Console for CLI output

@@ -15,12 +15,10 @@ IMPORTANT: This is read-only. No trading instructions are parsed or executed.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Optional, Union
+from datetime import UTC, datetime
 
 from polysignal.logging_config import get_logger
 from polysignal.models.orderbook import PriceLevel
-
 
 logger = get_logger("polysignal.ingestion.websocket_message_handler")
 
@@ -34,15 +32,15 @@ class WSMessage:
     timestamp: datetime
 
     # For snapshot messages
-    bids: Optional[list[PriceLevel]] = None
-    asks: Optional[list[PriceLevel]] = None
+    bids: list[PriceLevel] | None = None
+    asks: list[PriceLevel] | None = None
 
     # For update messages
-    bid_updates: Optional[list[tuple[float, float]]] = None  # (price, size)
-    ask_updates: Optional[list[tuple[float, float]]] = None
+    bid_updates: list[tuple[float, float]] | None = None  # (price, size)
+    ask_updates: list[tuple[float, float]] | None = None
 
     # Raw message for debugging
-    raw: Optional[dict] = None
+    raw: dict | None = None
 
 
 class WSMessageHandler:
@@ -57,7 +55,7 @@ class WSMessageHandler:
     """
 
     @staticmethod
-    def parse_message(data: dict) -> Optional[WSMessage]:
+    def parse_message(data: dict) -> WSMessage | None:
         """
         Parse a WebSocket message.
 
@@ -98,7 +96,7 @@ class WSMessageHandler:
             logger.debug(f"Message missing token_id, type={msg_type}")
             return None
 
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now(UTC)
 
         # Parse based on type
         if msg_type_lower in ("book", "orderbook", "snapshot"):
@@ -122,7 +120,7 @@ class WSMessageHandler:
         token_id: str,
         msg_type: str,
         timestamp: datetime,
-    ) -> Optional[WSMessage]:
+    ) -> WSMessage | None:
         """Parse orderbook snapshot message."""
         # Try various field names for bids/asks
         bids_data = data.get("bids") or data.get("buy") or []
@@ -150,7 +148,7 @@ class WSMessageHandler:
         token_id: str,
         msg_type: str,
         timestamp: datetime,
-    ) -> Optional[WSMessage]:
+    ) -> WSMessage | None:
         """Parse incremental update message."""
         # Try various field names
         bid_updates_data = data.get("bid_updates") or data.get("bids") or []
@@ -178,7 +176,7 @@ class WSMessageHandler:
         token_id: str,
         msg_type: str,
         timestamp: datetime,
-    ) -> Optional[WSMessage]:
+    ) -> WSMessage | None:
         """Parse tick/price message."""
         # Tick might have best bid/ask
         best_bid = data.get("best_bid") or data.get("bid")

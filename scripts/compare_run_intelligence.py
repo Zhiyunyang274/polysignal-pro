@@ -31,7 +31,7 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -173,14 +173,14 @@ class MarketObservation:
     """Single observation of a market in one run"""
     run_id: str
     timestamp: str
-    combined_ask: Optional[float] = None
-    event_score: Optional[float] = None
-    confidence: Optional[float] = None
-    suggested_mode: Optional[str] = None
-    ambiguity_risk: Optional[float] = None
-    volume_24h: Optional[float] = None
-    llm_success: Optional[bool] = None
-    near_miss_tier: Optional[str] = None
+    combined_ask: float | None = None
+    event_score: float | None = None
+    confidence: float | None = None
+    suggested_mode: str | None = None
+    ambiguity_risk: float | None = None
+    volume_24h: float | None = None
+    llm_success: bool | None = None
+    near_miss_tier: str | None = None
 
 
 @dataclass
@@ -197,23 +197,23 @@ class MarketSummary:
     observations: list[MarketObservation] = field(default_factory=list)
 
     # Aggregated metrics
-    avg_combined_ask: Optional[float] = None
-    avg_event_score: Optional[float] = None
-    avg_confidence: Optional[float] = None
-    avg_ambiguity_risk: Optional[float] = None
-    avg_volume: Optional[float] = None
+    avg_combined_ask: float | None = None
+    avg_event_score: float | None = None
+    avg_confidence: float | None = None
+    avg_ambiguity_risk: float | None = None
+    avg_volume: float | None = None
 
-    min_combined_ask: Optional[float] = None
-    max_combined_ask: Optional[float] = None
+    min_combined_ask: float | None = None
+    max_combined_ask: float | None = None
 
-    near_miss_tier_mode: Optional[str] = None
-    suggested_mode_mode: Optional[str] = None
+    near_miss_tier_mode: str | None = None
+    suggested_mode_mode: str | None = None
 
-    llm_success_rate: Optional[float] = None
+    llm_success_rate: float | None = None
 
     # Scoring
-    alpha_score: Optional[float] = None
-    avoid_score: Optional[float] = None
+    alpha_score: float | None = None
+    avoid_score: float | None = None
     evidence_level: str = "weak"
 
 
@@ -222,7 +222,7 @@ class RunSummary:
     """Summary of a single run"""
     run_id: str
     run_dir: Path
-    timestamp: Optional[str] = None
+    timestamp: str | None = None
     duration_minutes: float = 0.0
     data_mode: str = "unknown"
     llm_provider: str = "unknown"
@@ -286,9 +286,9 @@ class RunDiscovery:
     @staticmethod
     def discover_runs(
         runs_dir: Path,
-        run_ids: Optional[list[str]] = None,
-        latest_n: Optional[int] = None,
-        since: Optional[str] = None,
+        run_ids: list[str] | None = None,
+        latest_n: int | None = None,
+        since: str | None = None,
         min_runs: int = 2,
     ) -> list[Path]:
         """Discover valid runs based on criteria"""
@@ -392,7 +392,7 @@ class RunDataLoader:
     def _load_intelligence_summary(summary: RunSummary, path: Path) -> None:
         """Load intelligence_summary.json"""
         try:
-            with open(path, "r") as f:
+            with open(path) as f:
                 data = json.load(f)
 
             summary.total_observed_markets = data.get("total_observed_markets", 0)
@@ -410,7 +410,7 @@ class RunDataLoader:
     def _load_summary(summary: RunSummary, path: Path) -> None:
         """Load summary.json"""
         try:
-            with open(path, "r") as f:
+            with open(path) as f:
                 data = json.load(f)
 
             summary.duration_minutes = data.get("duration_minutes", 0.0)
@@ -433,7 +433,7 @@ class RunDataLoader:
     def _load_events(summary: RunSummary, path: Path) -> None:
         """Load events.jsonl"""
         try:
-            with open(path, "r") as f:
+            with open(path) as f:
                 summary.events = [json.loads(line) for line in f if line.strip()]
         except Exception as e:
             print(f"Warning: Failed to load {path}: {e}")
@@ -442,7 +442,7 @@ class RunDataLoader:
     def _load_sampled_markets_csv(summary: RunSummary, path: Path) -> None:
         """Load sampled_markets.csv"""
         try:
-            with open(path, "r") as f:
+            with open(path) as f:
                 reader = csv.DictReader(f)
                 summary.sampled_markets = list(reader)
         except Exception as e:
@@ -1014,7 +1014,7 @@ class ComparisonReportGenerator:
             "",
             "## Persistent Watchlist",
             "",
-            f"*Markets that appeared in multiple runs and meet near-miss or event score criteria.*",
+            "*Markets that appeared in multiple runs and meet near-miss or event score criteria.*",
             "",
             f"**Top {min(top_n, len(summary.persistent_watchlist))} of {len(summary.persistent_watchlist)} markets**",
             "",
@@ -1071,7 +1071,7 @@ class ComparisonReportGenerator:
             "",
             "## Avoid Candidates",
             "",
-            f"*Markets with high ambiguity risk, category risk, or other warning signs.*",
+            "*Markets with high ambiguity risk, category risk, or other warning signs.*",
             "",
             f"**Top {min(top_n, len(summary.avoid_candidates))} of {len(summary.avoid_candidates)} candidates**",
             "",

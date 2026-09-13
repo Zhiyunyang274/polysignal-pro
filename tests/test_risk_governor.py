@@ -4,16 +4,15 @@ Tests for Risk Governor
 
 import pytest
 
-from polysignal.models.signal import Signal, SignalSide, ComponentScores
-from polysignal.models.risk import RiskAction, RiskDecision, RiskContext
-from polysignal.models.market import Market, MarketCategory, MarketStatus
+from polysignal.models.market import MarketCategory
+from polysignal.models.risk import RiskAction, RiskContext
+from polysignal.models.signal import ComponentScores, Signal, SignalSide
 from polysignal.risk.risk_governor import RiskGovernor
 from tests.fixtures.markets import create_mock_market
 from tests.fixtures.orderbooks import (
-    create_mock_orderbook,
     create_mispricing_orderbook,
-    create_wide_spread_orderbook,
     create_thin_depth_orderbook,
+    create_wide_spread_orderbook,
 )
 
 

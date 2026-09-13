@@ -2,8 +2,9 @@
 Tests for Subscription Manager
 """
 
-import pytest
 import asyncio
+
+import pytest
 
 from polysignal.ingestion.subscription_manager import SubscriptionManager
 

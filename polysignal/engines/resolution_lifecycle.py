@@ -20,17 +20,17 @@ Output:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import Any, Optional
+from datetime import datetime
+from typing import Any
 
-from polysignal.models.market import Market, MarketCategory, MarketStatus
 from polysignal.models.lifecycle import (
+    AmbiguityLevel,
     LifecycleAssessment,
     LifecyclePhase,
-    AmbiguityLevel,
     ResolutionRiskLevel,
 )
-
+from polysignal.models.market import Market, MarketCategory, MarketStatus
+from polysignal.utils.time import ensure_utc, utc_now
 
 # Default ambiguity keywords (can be overridden by config)
 DEFAULT_AMBIGUITY_KEYWORDS = [
@@ -88,7 +88,7 @@ class ResolutionLifecycleEngine:
 
     def __init__(
         self,
-        ambiguity_keywords: Optional[list[str]] = None,
+        ambiguity_keywords: list[str] | None = None,
         early_threshold: float = 0.90,
         late_threshold: float = 0.20,
         closing_threshold: float = 0.05,
@@ -120,13 +120,13 @@ class ResolutionLifecycleEngine:
         Returns:
             LifecycleAssessment with scores and flags
         """
-        now = datetime.utcnow()
+        now = utc_now()
 
         # Step 1: Determine phase and close_time_risk
         phase, close_time_risk, time_remaining_pct = self._calculate_phase(
             now=now,
-            close_time=market.close_time,
-            created_at=market.created_at,
+            close_time=ensure_utc(market.close_time),
+            created_at=ensure_utc(market.created_at),
             status=market.status,
         )
 
@@ -204,10 +204,10 @@ class ResolutionLifecycleEngine:
     def _calculate_phase(
         self,
         now: datetime,
-        close_time: Optional[datetime],
-        created_at: Optional[datetime],
+        close_time: datetime | None,
+        created_at: datetime | None,
         status: MarketStatus,
-    ) -> tuple[LifecyclePhase, float, Optional[float]]:
+    ) -> tuple[LifecyclePhase, float, float | None]:
         """
         Calculate lifecycle phase and close time risk.
 

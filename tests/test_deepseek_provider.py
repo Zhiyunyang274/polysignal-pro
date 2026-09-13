@@ -6,10 +6,9 @@ Tests do NOT depend on real DeepSeek API.
 """
 
 import json
-import pytest
-from unittest.mock import patch, AsyncMock, MagicMock, PropertyMock
+from unittest.mock import patch
 
-import httpx
+import pytest
 
 from polysignal.llm.deepseek_provider import (
     DeepSeekProvider,
@@ -21,10 +20,10 @@ from polysignal.llm.llm_errors import (
     LLMConnectionError,
     LLMForbiddenFieldsError,
     LLMInvalidJSON,
+    LLMProviderNotConfigured,
     LLMRateLimit,
     LLMSchemaError,
     LLMTimeout,
-    LLMProviderNotConfigured,
 )
 from polysignal.llm.schemas import EventAnalysisSchema, MarketRuleSchema
 from polysignal.models.event import LLMResponse
@@ -199,7 +198,7 @@ class TestDeepSeekProvider:
     @pytest.mark.asyncio
     async def test_success_response(self, config: DeepSeekConfig):
         """Test successful response from DeepSeek"""
-        mock_response_data = {
+        {
             "choices": [
                 {
                     "message": {
@@ -292,7 +291,6 @@ class TestDeepSeekProvider:
             provider = DeepSeekProvider(config=config)
 
             # Mock the _make_request method to raise the error
-            original_make_request = provider._make_request
 
             async def mock_make_request(*args, **kwargs):
                 raise LLMRateLimit(

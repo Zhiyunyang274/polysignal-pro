@@ -5,6 +5,7 @@ Test Fixtures - Mock markets
 """
 
 from datetime import datetime, timedelta
+
 from polysignal.models.market import Market, MarketCategory, MarketStatus
 
 

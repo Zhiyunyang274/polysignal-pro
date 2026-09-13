@@ -13,12 +13,8 @@ IMPORTANT:
 - All signals must pass through Risk Governor
 """
 
-from typing import Optional, Union, Any
-from datetime import datetime
 
-from polysignal.models.signal import Signal, SignalSide, ComponentScores
-from polysignal.models.orderbook import OrderBookSnapshot
-from polysignal.models.market import Market, MarketCategory
+from polysignal.models.signal import ComponentScores, Signal, SignalSide
 from polysignal.strategies.base import Strategy, StrategyContext
 
 
@@ -89,7 +85,7 @@ class YesNoMispricingStrategy(Strategy):
             "Transaction costs may eliminate profit",
         ]
 
-    def compute_signal(self, context: StrategyContext) -> Optional[Signal]:
+    def compute_signal(self, context: StrategyContext) -> Signal | None:
         """
         Compute YES/NO mispricing signal.
 
@@ -210,7 +206,7 @@ class YesNoMispricingStrategy(Strategy):
     ) -> float:
         """Calculate liquidity score based on depth"""
         min_depth = min(yes_depth, no_depth)
-        avg_depth = (yes_depth + no_depth) / 2
+        (yes_depth + no_depth) / 2
 
         # Score based on minimum depth
         if min_depth >= 100:

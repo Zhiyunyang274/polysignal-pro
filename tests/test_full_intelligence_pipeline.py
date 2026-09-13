@@ -10,30 +10,26 @@ and Paper Trader. Validates that:
 - Live trading remains disabled
 """
 
-import pytest
-
 from datetime import datetime, timedelta
 
-from polysignal.models.market import Market, MarketCategory, MarketStatus
-from polysignal.models.orderbook import OrderBookSnapshot, OrderBookSide, PriceLevel
-from polysignal.models.signal import Signal, SignalSide, ComponentScores
-from polysignal.models.risk import RiskContext, RiskAction, RiskDecision
-from polysignal.models.wallet import WalletSpecialization
+import pytest
+
+from polysignal.engines.event_intelligence import EventIntelligenceEngine
 from polysignal.engines.market_microstructure import MarketMicrostructureEngine
 from polysignal.engines.resolution_lifecycle import ResolutionLifecycleEngine
 from polysignal.engines.wallet_intelligence import WalletIntelligenceEngine
-from polysignal.engines.event_intelligence import EventIntelligenceEngine
-from polysignal.risk.risk_governor import RiskGovernor
 from polysignal.execution.paper_trader import PaperTrader
 from polysignal.llm.mock_provider import MockScenario
+from polysignal.models.market import Market, MarketCategory, MarketStatus
+from polysignal.models.orderbook import OrderBookSide, OrderBookSnapshot, PriceLevel
+from polysignal.models.risk import RiskAction, RiskContext, RiskDecision
+from polysignal.models.signal import ComponentScores, Signal, SignalSide
+from polysignal.risk.risk_governor import RiskGovernor
 from tests.fixtures.wallets import (
+    create_consensus_activities_yes,
     create_mock_watchlist,
     create_profiles_dict,
-    create_wallet_market_activity,
-    create_consensus_activities_yes,
-    MOCK_WALLET_ADDRESSES,
 )
-from tests.fixtures.events import create_event_market
 
 
 class TestFullIntelligencePipeline:
@@ -297,11 +293,11 @@ class TestFullIntelligencePipeline:
     ):
         """Test paper trade is allowed when conditions are good"""
         # Get all assessments
-        micro_result = microstructure_engine.analyze_snapshot(orderbook)
-        lifecycle_assessment = lifecycle_engine.assess(market)
+        microstructure_engine.analyze_snapshot(orderbook)
+        lifecycle_engine.assess(market)
         wallet_activities = create_consensus_activities_yes()
-        wallet_assessment = wallet_engine.assess(market, recent_activities=wallet_activities)
-        event_assessment = event_engine.assess(market)
+        wallet_engine.assess(market, recent_activities=wallet_activities)
+        event_engine.assess(market)
 
         # Create high-quality signal
         signal = Signal(

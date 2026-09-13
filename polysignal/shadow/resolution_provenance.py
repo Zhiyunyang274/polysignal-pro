@@ -83,7 +83,7 @@ _ANY_SOURCE_CONTEXT_RE = re.compile(
     r"data\s+source|price\s+source|official\s+(?:source|price\s+feed)",
     re.IGNORECASE,
 )
-_BINANCE_PATH_RE = re.compile(r"/en/trade/(BTC|ETH|SOL)_USDT/?", re.IGNORECASE)
+_BINANCE_PATH_RE = re.compile(r"/en/trade/(BTC|ETH|SOL|XRP|DOGE|BNB|LINK)_USDT/?", re.IGNORECASE)
 _SOURCE_PROVIDER_BY_HOST = {
     host: provider
     for provider, hosts in {
@@ -110,6 +110,12 @@ _ASSET_SOURCE_ALIASES = {
     "BTC": ("btc", "bitcoin"),
     "ETH": ("eth", "ethereum"),
     "SOL": ("sol", "solana"),
+    # ADR-028: asset universe expansion (all verified against Binance
+    # /en/trade/{ASSET}_USDT resolution sources observed in the wild).
+    "XRP": ("xrp", "ripple"),
+    "DOGE": ("doge", "dogecoin"),
+    "BNB": ("bnb",),
+    "LINK": ("link", "chainlink"),
 }
 
 

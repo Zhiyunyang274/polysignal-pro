@@ -8,14 +8,13 @@ import csv
 import json
 from pathlib import Path
 
-import pytest
 import yaml
 
 import scripts.refresh_tradable_candidate_prices as refresh
 import scripts.run_shadow_paper_loop as shadow_loop
 from polysignal.ingestion.api_errors import CLOBError
 from polysignal.ingestion.api_types import CLOBOrderbook
-from polysignal.shadow.entry_filter import EntryFilterConfig, ShadowEntryFilter
+from polysignal.shadow.entry_filter import ShadowEntryFilter
 
 
 class FakeCLOBClient:

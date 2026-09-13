@@ -9,9 +9,9 @@ Live trading will be implemented in Milestone 3 with proper safeguards.
 
 from typing import Any
 
-from polysignal.models.signal import Signal
+from polysignal.models.paper_trade import PaperOrder
 from polysignal.models.risk import RiskDecision
-from polysignal.models.paper_trade import PaperOrder, OrderStatus
+from polysignal.models.signal import Signal
 
 
 class LiveTraderStub:
@@ -46,21 +46,15 @@ class LiveTraderStub:
         **kwargs: Any,
     ) -> PaperOrder:
         """
-        Execute a live trade (STUB - does nothing).
+        Execute a live trade (STUB - always refuses).
 
-        This always returns a stub order that indicates live trading is not available.
+        Fail-closed by design: a stub must never return an order that could be
+        mistaken for a real fill, so any call raises instead. The previous
+        stub-order return was also broken at runtime (an invalid OrderSide
+        value that Pydantic rejects).
         """
-        # Create a stub order indicating not implemented
-        return PaperOrder(
-            signal_id=signal.signal_id,
-            risk_decision_id=risk_decision.decision_id,
-            market_id=signal.market_id,
-            market_title=signal.market_title,
-            side="stub",
-            price=signal.price,
-            size=0,
-            status=OrderStatus.CANCELLED,
-            strategy_name=signal.strategy_name,
+        raise NotImplementedError(
+            "Live trading is not implemented in MVP. Use Paper Trader instead."
         )
 
     def is_available(self) -> bool:

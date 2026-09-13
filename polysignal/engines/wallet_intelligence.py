@@ -27,8 +27,9 @@ IMPORTANT: This engine does NOT:
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 
+from polysignal.models.market import Market
 from polysignal.models.wallet import (
     WalletAssessment,
     WalletConsensus,
@@ -37,7 +38,6 @@ from polysignal.models.wallet import (
     WalletSpecialization,
     WatchlistEntry,
 )
-from polysignal.models.market import Market, MarketCategory
 
 
 class WalletIntelligenceEngine:
@@ -70,8 +70,8 @@ class WalletIntelligenceEngine:
 
     def __init__(
         self,
-        watchlist: Optional[list[WatchlistEntry]] = None,
-        profiles: Optional[dict[str, WalletProfile]] = None,
+        watchlist: list[WatchlistEntry] | None = None,
+        profiles: dict[str, WalletProfile] | None = None,
         copy_risk_threshold: float = 0.5,
         chase_price_threshold: float = 0.05,
     ):
@@ -92,8 +92,8 @@ class WalletIntelligenceEngine:
     def assess(
         self,
         market: Market,
-        recent_activities: Optional[list[WalletMarketActivity]] = None,
-        current_price: Optional[float] = None,
+        recent_activities: list[WalletMarketActivity] | None = None,
+        current_price: float | None = None,
     ) -> WalletAssessment:
         """
         Assess wallet signals for a market.
@@ -203,8 +203,8 @@ class WalletIntelligenceEngine:
     def _calculate_consensus(
         self,
         market: Market,
-        recent_activities: Optional[list[WalletMarketActivity]],
-    ) -> Optional[WalletConsensus]:
+        recent_activities: list[WalletMarketActivity] | None,
+    ) -> WalletConsensus | None:
         """
         Calculate wallet consensus for a market.
 
@@ -312,8 +312,8 @@ class WalletIntelligenceEngine:
 
     def _detect_chase_risk(
         self,
-        recent_activities: Optional[list[WalletMarketActivity]],
-        current_price: Optional[float],
+        recent_activities: list[WalletMarketActivity] | None,
+        current_price: float | None,
     ) -> list[str]:
         """
         Detect chase (追高) risk.
@@ -345,7 +345,7 @@ class WalletIntelligenceEngine:
 
     def _detect_timing_risk(
         self,
-        recent_activities: Optional[list[WalletMarketActivity]],
+        recent_activities: list[WalletMarketActivity] | None,
     ) -> list[str]:
         """Detect timing risk (entering after fast price moves)."""
         if not recent_activities:

@@ -22,29 +22,26 @@ Environment:
 import asyncio
 import sys
 from datetime import datetime
-from typing import Any, Optional
 
 # Add project root to path
 sys.path.insert(0, ".")
 
 from polysignal.config import config
-from polysignal.logging_config import setup_logging, get_logger
-from polysignal.ingestion.data_provider_manager import DataProviderManager, DataMode
-from polysignal.ingestion.mock_wallet_provider import (
-    generate_mock_watchlist,
-    generate_mock_wallet_history,
-)
+from polysignal.engines.event_intelligence import EventIntelligenceEngine
 from polysignal.engines.market_microstructure import MarketMicrostructureEngine
 from polysignal.engines.resolution_lifecycle import ResolutionLifecycleEngine
 from polysignal.engines.wallet_intelligence import WalletIntelligenceEngine
-from polysignal.engines.event_intelligence import EventIntelligenceEngine
-from polysignal.strategies.yes_no_mispricing import YesNoMispricingStrategy
-from polysignal.strategies.base import StrategyContext
-from polysignal.risk.risk_governor import RiskGovernor
 from polysignal.execution.paper_trader import PaperTrader
+from polysignal.ingestion.data_provider_manager import DataMode, DataProviderManager
+from polysignal.ingestion.mock_wallet_provider import (
+    generate_mock_watchlist,
+)
+from polysignal.logging_config import get_logger, setup_logging
 from polysignal.models.risk import RiskContext
 from polysignal.models.wallet import WalletProfile, WalletSpecialization
-
+from polysignal.risk.risk_governor import RiskGovernor
+from polysignal.strategies.base import StrategyContext
+from polysignal.strategies.yes_no_mispricing import YesNoMispricingStrategy
 
 logger = get_logger("polysignal.smoke_real_readonly")
 
@@ -80,7 +77,7 @@ def print_header():
     print("PolySignal Pro - Real Read-only API Smoke Test")
     print("=" * 60)
     print(f"Started: {datetime.utcnow().isoformat()}")
-    print(f"Mode: REAL_READONLY")
+    print("Mode: REAL_READONLY")
     print("=" * 60 + "\n")
 
 
@@ -247,7 +244,7 @@ async def run_smoke_test(max_markets: int = 5, max_orderbooks: int = 3) -> Smoke
                     result.orderbooks_fetched += 1
                     print(f"    ✓ Orderbook fetched (combined_ask: {orderbook.combined_ask})")
                 else:
-                    print(f"    ✗ No orderbook returned")
+                    print("    ✗ No orderbook returned")
             except Exception as e:
                 error_msg = f"Failed to fetch orderbook for {market.market_id}: {e}"
                 result.errors.append(error_msg)
@@ -265,17 +262,17 @@ async def run_smoke_test(max_markets: int = 5, max_orderbooks: int = 3) -> Smoke
 
             try:
                 # Market Microstructure Engine
-                micro_result = microstructure_engine.analyze_snapshot(orderbook)
+                microstructure_engine.analyze_snapshot(orderbook)
                 component_scores = microstructure_engine.get_component_scores(orderbook)
 
                 # Resolution & Lifecycle Engine
-                lifecycle_assessment = lifecycle_engine.assess(market)
+                lifecycle_engine.assess(market)
 
                 # Wallet Intelligence Engine
-                wallet_assessment = wallet_engine.assess(market)
+                wallet_engine.assess(market)
 
                 # Event Intelligence Engine (with mock LLM)
-                event_assessment = await event_engine.assess_async(market)
+                await event_engine.assess_async(market)
 
                 # Create strategy context
                 context = StrategyContext(
@@ -288,7 +285,7 @@ async def run_smoke_test(max_markets: int = 5, max_orderbooks: int = 3) -> Smoke
                 signal = strategy.compute_signal(context)
 
                 if signal is None:
-                    print(f"    No signal generated (conditions not met)")
+                    print("    No signal generated (conditions not met)")
                     continue
 
                 result.signals_generated += 1

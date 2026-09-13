@@ -2,11 +2,10 @@
 Test fixtures for Telegram module
 """
 
-from datetime import datetime
 
-from polysignal.models.signal import Signal, SignalSide, ComponentScores
-from polysignal.models.risk import RiskDecision, RiskAction
 from polysignal.models.market import Market, MarketCategory, MarketStatus
+from polysignal.models.risk import RiskAction, RiskDecision
+from polysignal.models.signal import ComponentScores, Signal, SignalSide
 
 
 def create_test_signal(

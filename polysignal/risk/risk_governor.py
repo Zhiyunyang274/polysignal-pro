@@ -12,13 +12,13 @@ This module:
 - Controls paper trading and live trading permissions
 """
 
-from datetime import datetime
-from typing import Any, Optional
 
-from polysignal.models.signal import Signal, ComponentScores
-from polysignal.models.risk import RiskAction, RiskDecision, RiskContext
-from polysignal.models.orderbook import OrderBookSnapshot
 from polysignal.models.market import Market
+from polysignal.models.orderbook import OrderBookSnapshot
+from polysignal.models.risk import RiskAction, RiskContext, RiskDecision
+from polysignal.models.signal import ComponentScores, Signal
+from polysignal.risk.exposure_guard import ExposureGuard
+from polysignal.risk.liquidity_guard import LiquidityGuard
 
 
 class RiskGovernor:
@@ -57,7 +57,9 @@ class RiskGovernor:
         min_total_volume_usd: float = 100000,
         min_depth_usd: float = 20,
         max_spread_pct: float = 0.05,
-        scoring_weights: Optional[dict[str, float]] = None,
+        scoring_weights: dict[str, float] | None = None,
+        liquidity_guard: LiquidityGuard | None = None,
+        exposure_guard: ExposureGuard | None = None,
     ):
         """
         Initialize Risk Governor.
@@ -103,12 +105,26 @@ class RiskGovernor:
             "lifecycle": 0.15,
         }
 
+        # Wired guards (Iteration 006): the guards own the liquidity and
+        # exposure hard-rejection rules. Defaults derive from this Governor's
+        # configuration so existing callers need no changes; injection stays
+        # available for tests.
+        self.liquidity_guard = liquidity_guard or LiquidityGuard(
+            min_depth_usd=min_depth_usd,
+            max_spread_pct=max_spread_pct,
+        )
+        self.exposure_guard = exposure_guard or ExposureGuard(
+            max_account_capital_usd=max_account_capital_usd,
+            max_market_exposure_pct=max_market_exposure_pct,
+            max_strategy_exposure_pct=max_strategy_exposure_pct,
+        )
+
     def evaluate(
         self,
         signal: Signal,
         context: RiskContext,
-        orderbook: Optional[OrderBookSnapshot] = None,
-        market: Optional[Market] = None,
+        orderbook: OrderBookSnapshot | None = None,
+        market: Market | None = None,
     ) -> RiskDecision:
         """
         Evaluate a signal and make a decision.
@@ -182,8 +198,8 @@ class RiskGovernor:
         self,
         signal: Signal,
         context: RiskContext,
-        orderbook: Optional[OrderBookSnapshot],
-        market: Optional[Market],
+        orderbook: OrderBookSnapshot | None,
+        market: Market | None,
     ) -> list[str]:
         """Check hard rejection conditions"""
         reasons = []
@@ -227,31 +243,10 @@ class RiskGovernor:
             if orderbook.is_stale:
                 reasons.append("orderbook_stale")
 
-            if orderbook.spread_pct_yes is not None:
-                if orderbook.spread_pct_yes > self.max_spread_pct:
-                    reasons.append("spread_too_wide")
-
-            # Check depth based on signal side
-            # For YES/NO combined mispricing (BOTH), both ask sides must have sufficient depth
-            # For YES signals, YES ask side must have sufficient depth
-            # For NO signals, NO ask side must have sufficient depth
-            from polysignal.models.signal import SignalSide
-            if signal.side == SignalSide.BOTH:
-                # Both YES and NO ask sides must have sufficient depth
-                yes_ask_depth = orderbook.yes_asks.total_depth_usd
-                no_ask_depth = orderbook.no_asks.total_depth_usd
-                if yes_ask_depth < self.min_depth_usd or no_ask_depth < self.min_depth_usd:
-                    reasons.append("depth_too_thin")
-            elif signal.side == SignalSide.YES:
-                # YES ask side must have sufficient depth
-                yes_ask_depth = orderbook.yes_asks.total_depth_usd
-                if yes_ask_depth < self.min_depth_usd:
-                    reasons.append("depth_too_thin")
-            elif signal.side == SignalSide.NO:
-                # NO ask side must have sufficient depth
-                no_ask_depth = orderbook.no_asks.total_depth_usd
-                if no_ask_depth < self.min_depth_usd:
-                    reasons.append("depth_too_thin")
+            # Spread/depth gates delegated to LiquidityGuard (single source of
+            # truth for the side-aware liquidity rules; behaviour identical to
+            # the previously inline checks)
+            reasons.extend(self.liquidity_guard.check_liquidity(orderbook, signal.side))
 
         # Account-level checks
         daily_loss_limit = self.max_account_capital_usd * self.daily_max_loss_pct
@@ -264,6 +259,10 @@ class RiskGovernor:
 
         if context.consecutive_losses >= self.max_consecutive_losses:
             reasons.append("consecutive_loss_limit_breached")
+
+        # Exposure caps (wired guard): per-market and per-strategy limits are
+        # hard rejections, not just scoring penalties
+        reasons.extend(self.exposure_guard.check_exposure(context))
 
         # Signal-level checks (from lifecycle engine or other engines)
         # These are SUPPLEMENTARY - the direct checks above are the primary safeguards
@@ -372,7 +371,7 @@ class RiskGovernor:
         self,
         signal: Signal,
         context: RiskContext,
-        orderbook: Optional[OrderBookSnapshot],
+        orderbook: OrderBookSnapshot | None,
     ) -> dict[str, float]:
         """Calculate penalty scores"""
         penalties = {}

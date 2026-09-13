@@ -7,7 +7,6 @@ This module provides reconnection logic with exponential backoff.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -38,7 +37,7 @@ class ReconnectionStrategy:
     def __post_init__(self) -> None:
         self._current_delay = self.initial_delay
 
-    def next_delay(self) -> Optional[float]:
+    def next_delay(self) -> float | None:
         """
         Get next reconnection delay.
 

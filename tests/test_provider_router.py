@@ -5,25 +5,22 @@ IMPORTANT: All tests use mock providers.
 Tests do NOT depend on real LLM APIs.
 """
 
-import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from polysignal.llm.provider_router import (
-    ProviderRouter,
-    AnalysisType,
-    create_llm_provider_from_config,
-)
+import pytest
+
+from polysignal.llm.deepseek_provider import DeepSeekProvider
+from polysignal.llm.glm_provider import GLMProvider
 from polysignal.llm.llm_config import (
     LLMConfig,
     LLMProviderType,
     RouterConfig,
-    DeepSeekConfig,
-    GLMConfig,
-    MockConfig,
 )
 from polysignal.llm.mock_provider import MockLLMProvider, MockScenario
-from polysignal.llm.deepseek_provider import DeepSeekProvider
-from polysignal.llm.glm_provider import GLMProvider
+from polysignal.llm.provider_router import (
+    ProviderRouter,
+    create_llm_provider_from_config,
+)
 from polysignal.llm.schemas import EventAnalysisSchema, MarketRuleSchema
 from polysignal.models.event import LLMResponse
 
@@ -259,7 +256,7 @@ class TestProviderRouter:
         mock_provider.analyze = mock_analyze
 
         with patch.object(router, "_get_provider", return_value=mock_provider):
-            response = await router.analyze_event(
+            await router.analyze_event(
                 prompt="Test",
                 response_schema=EventAnalysisSchema,
             )

@@ -19,11 +19,10 @@ before enabling real websocket mode.
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Optional
+from typing import Any, cast
 
 import httpx
 
-from polysignal.ingestion.api_types import CLOBOrderbook, CLOBTicker
 from polysignal.ingestion.api_errors import (
     APIConnectionError,
     APIInvalidResponse,
@@ -33,8 +32,8 @@ from polysignal.ingestion.api_errors import (
     APITimeout,
     CLOBError,
 )
+from polysignal.ingestion.api_types import CLOBOrderbook, CLOBTicker
 from polysignal.logging_config import get_logger
-
 
 logger = get_logger("polysignal.ingestion.clob_client")
 
@@ -58,7 +57,7 @@ class CLOBReadOnlyClient:
 
     def __init__(
         self,
-        base_url: Optional[str] = None,
+        base_url: str | None = None,
         timeout_seconds: float = 10.0,
         max_retries: int = 3,
     ):
@@ -73,7 +72,7 @@ class CLOBReadOnlyClient:
         self.base_url = base_url or self.BASE_URL
         self.timeout_seconds = timeout_seconds
         self.max_retries = max_retries
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client"""
@@ -94,7 +93,7 @@ class CLOBReadOnlyClient:
         self,
         method: str,
         endpoint: str,
-        params: Optional[dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Make HTTP request with retry logic.
@@ -111,14 +110,14 @@ class CLOBReadOnlyClient:
             CLOBError: On API failure after retries
         """
         client = await self._get_client()
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
 
         for attempt in range(self.max_retries):
             try:
                 response = await client.request(method, endpoint, params=params)
 
                 if response.status_code == 200:
-                    return response.json()
+                    return cast(dict[str, Any], response.json())
 
                 if response.status_code == 404:
                     raise APINotFound(f"Resource not found: {endpoint}")
@@ -138,7 +137,7 @@ class CLOBReadOnlyClient:
 
                 raise CLOBError(f"Unexpected status code: {response.status_code}")
 
-            except httpx.TimeoutException as e:
+            except httpx.TimeoutException:
                 last_error = APITimeout(f"Request timeout: {endpoint}")
                 logger.warning(
                     "CLOB API timeout",
@@ -147,7 +146,7 @@ class CLOBReadOnlyClient:
                     max_retries=self.max_retries,
                 )
 
-            except httpx.ConnectError as e:
+            except httpx.ConnectError:
                 last_error = APIConnectionError(f"Connection error: {endpoint}")
                 logger.warning(
                     "CLOB API connection error",
@@ -175,7 +174,7 @@ class CLOBReadOnlyClient:
     async def get_orderbook(
         self,
         token_id: str,
-    ) -> Optional[CLOBOrderbook]:
+    ) -> CLOBOrderbook | None:
         """
         Get orderbook for a single token.
 
@@ -203,9 +202,9 @@ class CLOBReadOnlyClient:
                 token_id=token_id,
                 error=str(e),
             )
-            raise CLOBError(f"Failed to get orderbook for token {token_id}: {e}")
+            raise CLOBError(f"Failed to get orderbook for token {token_id}: {e}") from e
 
-    async def get_price(self, token_id: str) -> Optional[float]:
+    async def get_price(self, token_id: str) -> float | None:
         """
         Get current price for a token.
 
@@ -234,7 +233,7 @@ class CLOBReadOnlyClient:
                 token_id=token_id,
                 error=str(e),
             )
-            raise CLOBError(f"Failed to get price for token {token_id}: {e}")
+            raise CLOBError(f"Failed to get price for token {token_id}: {e}") from e
 
     async def get_tickers(self) -> list[CLOBTicker]:
         """
@@ -271,13 +270,13 @@ class CLOBReadOnlyClient:
         except CLOBError:
             raise
         except Exception as e:
-            raise CLOBError(f"Failed to get tickers: {e}")
+            raise CLOBError(f"Failed to get tickers: {e}") from e
 
     async def get_market_orderbook(
         self,
         yes_token_id: str,
         no_token_id: str,
-    ) -> tuple[Optional[CLOBOrderbook], Optional[CLOBOrderbook]]:
+    ) -> tuple[CLOBOrderbook | None, CLOBOrderbook | None]:
         """
         Get orderbook for both YES and NO tokens of a market.
 
@@ -315,6 +314,11 @@ class CLOBReadOnlyClient:
                     token_id=no_token_id,
                     error=str(no_book),
                 )
+                no_book = None
+
+            if isinstance(yes_book, BaseException):
+                yes_book = None
+            if isinstance(no_book, BaseException):
                 no_book = None
 
             return yes_book, no_book

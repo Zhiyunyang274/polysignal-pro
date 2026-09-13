@@ -4,17 +4,14 @@ Tests for Event Intelligence Engine
 
 import pytest
 
+from polysignal.engines.event_intelligence import EventIntelligenceEngine
+from polysignal.llm.mock_provider import MockScenario
 from polysignal.models.event import (
-    EventAssessment,
     SuggestedMode,
     create_default_assessment,
 )
-from polysignal.engines.event_intelligence import EventIntelligenceEngine
-from polysignal.llm.mock_provider import MockScenario
 from tests.fixtures.events import (
     create_event_market,
-    create_ambiguous_market,
-    create_politics_event_market,
 )
 
 

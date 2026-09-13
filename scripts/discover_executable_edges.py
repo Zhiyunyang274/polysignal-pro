@@ -17,7 +17,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 import yaml
@@ -27,7 +27,6 @@ from polysignal.ingestion.api_types import CLOBOrderbook
 from polysignal.ingestion.clob_client import CLOBReadOnlyClient
 from scripts.backfill_shadow_token_ids import coerce_list, token_pair_from_outcomes, valid_token_id
 from scripts.run_shadow_paper_loop import safe_float
-
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -94,7 +93,7 @@ class GammaActiveMarketClient:
         return [item for item in payload if isinstance(item, dict)] if isinstance(payload, list) else []
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Discover read-only executable YES/NO edge candidates")
     parser.add_argument("--max_markets", type=int, default=500)
     parser.add_argument("--min_volume", type=float, default=1000.0)
@@ -111,7 +110,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 def load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    with open(path, "r") as f:
+    with open(path) as f:
         data = yaml.safe_load(f) or {}
     return data if isinstance(data, dict) else {}
 
@@ -194,7 +193,7 @@ def market_safety_reject_reason(market: dict[str, Any], avoid_ids: set[str]) -> 
     return ""
 
 
-def extract_token_pair(market: dict[str, Any]) -> tuple[Optional[TokenPair], str]:
+def extract_token_pair(market: dict[str, Any]) -> tuple[TokenPair | None, str]:
     mid = market_id(market)
     token_ids = coerce_list(market.get("clobTokenIds") or market.get("clob_token_ids"))
     outcomes = coerce_list(market.get("outcomes"))
@@ -229,7 +228,7 @@ def extract_token_pair(market: dict[str, Any]) -> tuple[Optional[TokenPair], str
     return None, "missing_token_id"
 
 
-def price_levels(orderbook: Optional[CLOBOrderbook]) -> dict[str, float]:
+def price_levels(orderbook: CLOBOrderbook | None) -> dict[str, float]:
     if orderbook is None:
         return {"best_bid": 0.0, "best_ask": 0.0, "spread": 0.0, "liquidity": 0.0, "depth": 0.0}
     bids = [safe_float(level.price) for level in orderbook.bids if safe_float(level.price) > 0]
@@ -250,8 +249,8 @@ def price_levels(orderbook: Optional[CLOBOrderbook]) -> dict[str, float]:
 def build_edge_candidate(
     market: dict[str, Any],
     pair: TokenPair,
-    yes_book: Optional[CLOBOrderbook],
-    no_book: Optional[CLOBOrderbook],
+    yes_book: CLOBOrderbook | None,
+    no_book: CLOBOrderbook | None,
     spread_buffer: float,
     min_executable_edge: float,
     min_depth: float,
@@ -339,8 +338,8 @@ def filter_markets(markets: list[dict[str, Any]], min_volume: float, max_markets
 
 async def discover_edges(
     args: argparse.Namespace,
-    gamma_client: Optional[Any] = None,
-    clob_client: Optional[Any] = None,
+    gamma_client: Any | None = None,
+    clob_client: Any | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     started = datetime.utcnow()
     timestamp = started.isoformat()
@@ -462,7 +461,7 @@ def build_summary(
     insufficient_depth_count: int,
     spread_too_wide_count: int,
     errors: list[dict[str, str]],
-    evaluated_rows: Optional[list[dict[str, Any]]] = None,
+    evaluated_rows: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     ended = datetime.utcnow()
     rows_for_counts = evaluated_rows if evaluated_rows is not None else candidates
@@ -584,7 +583,7 @@ async def run_async(args: argparse.Namespace) -> tuple[list[dict[str, Any]], dic
     return await discover_edges(args)
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     candidates, summary = asyncio.run(run_async(args))
     print_summary(summary, args.dry_run)

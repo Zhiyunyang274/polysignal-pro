@@ -23,7 +23,7 @@ import math
 import re
 from collections import Counter
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from statistics import mean
 from typing import Any, Literal, cast
@@ -45,12 +45,12 @@ from polysignal.shadow.gamma_raw_snapshot import (
 )
 from polysignal.shadow.historical_barrier_provenance import (
     HISTORICAL_BARRIER_STATUS_VERIFIED,
-    BinanceHistoricalKlineClient,
     BinanceKlineFetchResult,
     HistoricalArtifactConflictError,
     HistoricalBarrierEvidence,
     HistoricalCandleAuditReference,
     HistoricalCandleSnapshotReference,
+    MultiSourceHistoricalKlineClient,
     RuleObservationWindow,
     evaluate_historical_barrier,
     historical_evidence_candidate_fields,
@@ -98,9 +98,29 @@ ASSET_ALIASES = {
     "BTC": ("btc", "bitcoin"),
     "ETH": ("eth", "ethereum"),
     "SOL": ("sol", "solana"),
+    # ADR-028 (user-approved 2026-09-12): asset universe expansion — all four
+    # new assets use Binance /en/trade/{ASSET}_USDT resolution sources that are
+    # already on the allowlist host pattern.
+    "XRP": ("xrp", "ripple"),
+    "DOGE": ("doge", "dogecoin"),
+    "BNB": ("bnb",),
+    "LINK": ("link", "chainlink"),
 }
-BINANCE_SYMBOLS = {"BTC": "BTCUSDT", "ETH": "ETHUSDT", "SOL": "SOLUSDT"}
-ANNUAL_VOL_PROXY = {"BTC": 0.60, "ETH": 0.75, "SOL": 0.95}
+BINANCE_SYMBOLS = {
+    "BTC": "BTCUSDT",
+    "ETH": "ETHUSDT",
+    "SOL": "SOLUSDT",
+    "XRP": "XRPUSDT",
+    "DOGE": "DOGEUSDT",
+    "BNB": "BNBUSDT",
+    "LINK": "LINKUSDT",
+}
+# Documented annualized-volatility estimates used by the baseline probability
+# heuristic (order-of-magnitude from each asset's realized 2025-2026 volatility).
+ANNUAL_VOL_PROXY = {
+    "BTC": 0.60, "ETH": 0.75, "SOL": 0.95,
+    "XRP": 0.90, "DOGE": 1.10, "BNB": 0.70, "LINK": 0.95,
+}
 OUTPUT_FIELDS = [
     "schema_version",
     "edge_type",
@@ -362,7 +382,7 @@ class BinanceSpotPriceProvider:
                     payload = response.json()
                     price = safe_float(payload.get("price"), 0.0)
                     if price <= 0:
-                        observed_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+                        observed_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
                         prices[asset] = SpotPrice(
                             asset,
                             0.0,
@@ -371,12 +391,12 @@ class BinanceSpotPriceProvider:
                             "missing_price",
                         )
                     else:
-                        observed_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+                        observed_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
                         prices[asset] = SpotPrice(
                             asset, price, observed_at, "binance_public_ticker"
                         )
                 except Exception as exc:
-                    observed_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+                    observed_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
                     prices[asset] = SpotPrice(
                         asset, 0.0, observed_at, "binance_public_ticker", str(exc)
                     )
@@ -429,7 +449,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Discover read-only crypto threshold edge candidates"
     )
-    parser.add_argument("--assets", type=str, default="BTC,ETH,SOL")
+    parser.add_argument("--assets", type=str, default="BTC,ETH,SOL,XRP,DOGE,BNB,LINK")
     parser.add_argument("--max_markets", type=int, default=500)
     parser.add_argument("--min_volume", type=float, default=1000.0)
     parser.add_argument("--min_edge", type=float, default=0.02)
@@ -510,7 +530,7 @@ def parse_aware_utc(value: Any) -> datetime | None:
     if isinstance(value, bool):
         return None
     if isinstance(value, datetime):
-        return value.astimezone(timezone.utc) if value.tzinfo is not None else None
+        return value.astimezone(UTC) if value.tzinfo is not None else None
     raw = str(value or "").strip()
     if not raw:
         return None
@@ -521,7 +541,7 @@ def parse_aware_utc(value: Any) -> datetime | None:
     if numeric is not None and math.isfinite(numeric) and numeric >= 0:
         seconds = numeric / 1000.0 if numeric >= 100_000_000_000 else numeric
         try:
-            return datetime.fromtimestamp(seconds, tz=timezone.utc)
+            return datetime.fromtimestamp(seconds, tz=UTC)
         except (OverflowError, OSError, ValueError):
             return None
     try:
@@ -530,18 +550,18 @@ def parse_aware_utc(value: Any) -> datetime | None:
         return None
     if parsed.tzinfo is None:
         return None
-    return parsed.astimezone(timezone.utc)
+    return parsed.astimezone(UTC)
 
 
 def aware_utc_now(time_provider: Any) -> datetime:
     observed = time_provider()
     if not isinstance(observed, datetime) or observed.tzinfo is None:
         raise ValueError("time provider must return timezone-aware datetimes")
-    return observed.astimezone(timezone.utc)
+    return observed.astimezone(UTC)
 
 
 def iso_utc(value: datetime) -> str:
-    normalized = value.astimezone(timezone.utc)
+    normalized = value.astimezone(UTC)
     timespec = "milliseconds" if normalized.microsecond else "seconds"
     return normalized.isoformat(timespec=timespec).replace("+00:00", "Z")
 
@@ -549,7 +569,7 @@ def iso_utc(value: datetime) -> str:
 def next_batch_entry_time(scheduled_at: datetime) -> datetime:
     """Commit to a future minute before quotes exist; never round a recorded quote."""
 
-    observed = scheduled_at.astimezone(timezone.utc)
+    observed = scheduled_at.astimezone(UTC)
     return observed.replace(second=0, microsecond=0) + timedelta(minutes=1)
 
 
@@ -710,14 +730,28 @@ def detect_asset(text: str, assets: list[str]) -> tuple[str, float]:
 
 
 def parse_threshold_price(text: str) -> tuple[float, float]:
+    """Extract the threshold price from a threshold-market title.
+
+    Dollar-anchored numbers are explicit prices of any magnitude (XRP $0.80,
+    DOGE $0.20 are as genuine as BTC $100,000). Bare numbers keep the
+    historical >= $10 / year-band guards to avoid matching small counts or
+    percentages in titles. (ADR-028 asset universe expansion.)
+    """
     patterns = [
-        r"\$\s*([0-9]+(?:,[0-9]{3})*(?:\.[0-9]+)?|\d+(?:\.\d+)?)\s*([kKmM]?)",
+        # $-anchored: explicit price of any magnitude (XRP $0.80, BTC $100,000)
+        r"(\$)\s*([0-9]+(?:,[0-9]{3})*(?:\.[0-9]+)?)\s*([kKmM]?)",
+        # suffixed bare numbers (0.1M, 100k)
         r"\b([0-9]+(?:,[0-9]{3})*(?:\.[0-9]+)?)\s*([kKmM])\b",
+        # 3+ digit bare numbers (bare 1-2 digit numbers are dates/counts)
         r"\b([0-9]{3,}(?:,[0-9]{3})*(?:\.[0-9]+)?)\s*()\b",
     ]
     for pattern in patterns:
         for match in re.finditer(pattern, text):
-            raw, suffix = match.groups()
+            groups = match.groups()
+            if len(groups) == 3:
+                dollar, raw, suffix = groups
+            else:
+                dollar, raw, suffix = "", groups[0], groups[1]
             value = safe_float(raw.replace(",", ""), 0.0)
             if value <= 0:
                 continue
@@ -725,9 +759,12 @@ def parse_threshold_price(text: str) -> tuple[float, float]:
                 value *= 1000.0
             elif suffix.lower() == "m":
                 value *= 1_000_000.0
-            if not suffix and 1900 <= value <= 2100:
+            # Bare numbers in the 1900-2100 band are years, not prices.
+            # Dollar-anchored values in that band are genuine asset prices
+            # (e.g. "ETH reach $2000").
+            if not suffix and not dollar and 1900 <= value <= 2100:
                 continue
-            if value >= 10:
+            if dollar or value >= 10:
                 return value, 0.25
     return 0.0, 0.0
 
@@ -902,7 +939,7 @@ async def fetch_market_universe(
             "limit": limit,
             "offset": offset,
         }
-        request_started = datetime.now(timezone.utc)
+        request_started = datetime.now(UTC)
         try:
             if hasattr(gamma_client, "fetch_active_markets_page"):
                 page = await gamma_client.fetch_active_markets_page(limit, offset)
@@ -920,7 +957,7 @@ async def fetch_market_universe(
                     query=query,
                     error=str(exc),
                     started_at=request_started,
-                    completed_at=datetime.now(timezone.utc),
+                    completed_at=datetime.now(UTC),
                 )
             errors.append({"stage": "gamma_page", "error": str(exc), "offset": str(offset)})
             break
@@ -934,7 +971,7 @@ async def fetch_market_universe(
                 query=query,
                 payloads=page,
                 started_at=request_started,
-                completed_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(UTC),
                 terminal=terminal_page,
             )
         if not page:
@@ -960,7 +997,7 @@ async def fetch_market_universe(
                 "limit": page_size,
                 "search": keyword,
             }
-            request_started = datetime.now(timezone.utc)
+            request_started = datetime.now(UTC)
             try:
                 if hasattr(gamma_client, "search_markets"):
                     search_rows = await gamma_client.search_markets(keyword, page_size)
@@ -974,7 +1011,7 @@ async def fetch_market_universe(
                         query=query,
                         error=str(exc),
                         started_at=request_started,
-                        completed_at=datetime.now(timezone.utc),
+                        completed_at=datetime.now(UTC),
                     )
                 errors.append({"stage": "gamma_search", "keyword": keyword, "error": str(exc)})
                 continue
@@ -985,7 +1022,7 @@ async def fetch_market_universe(
                     query=query,
                     payloads=search_rows,
                     started_at=request_started,
-                    completed_at=datetime.now(timezone.utc),
+                    completed_at=datetime.now(UTC),
                     terminal=True,
                 )
             for market in search_rows:
@@ -1044,18 +1081,15 @@ def normal_cdf(value: float) -> float:
 def hours_until(expiry_time: str, now: datetime | None = None) -> float:
     if not expiry_time:
         return 0.0
-    current = now or datetime.now(timezone.utc)
-    if current.tzinfo is None:
-        current = current.replace(tzinfo=timezone.utc)
-    else:
-        current = current.astimezone(timezone.utc)
+    current = now or datetime.now(UTC)
+    current = current.replace(tzinfo=UTC) if current.tzinfo is None else current.astimezone(UTC)
     try:
         expiry = datetime.fromisoformat(expiry_time.replace("Z", "+00:00"))
     except ValueError:
         return 0.0
     if expiry.tzinfo is None:
         return 0.0
-    return max(0.0, (expiry.astimezone(timezone.utc) - current).total_seconds() / 3600.0)
+    return max(0.0, (expiry.astimezone(UTC) - current).total_seconds() / 3600.0)
 
 
 def estimate_probability(
@@ -1719,13 +1753,13 @@ async def discover_crypto_threshold_edges(
     time_provider: Any | None = None,
     sleep_provider: Any | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    started = datetime.now(timezone.utc)
+    started = datetime.now(UTC)
     assets = parse_assets(args.assets)
     gamma = gamma_client or GammaCoverageClient()
     clob = clob_client or CLOBReadOnlyClient(max_retries=1)
     spotter = spot_provider or BinanceSpotPriceProvider()
-    historical_client = historical_kline_client or BinanceHistoricalKlineClient()
-    observed_now = time_provider or (lambda: datetime.now(timezone.utc))
+    historical_client = historical_kline_client or MultiSourceHistoricalKlineClient()
+    observed_now = time_provider or (lambda: datetime.now(UTC))
     sleeper = sleep_provider or asyncio.sleep
     close_clob = clob_client is None
     snapshot_recorder = (
@@ -1757,7 +1791,7 @@ async def discover_crypto_threshold_edges(
     historical_plans: dict[str, HistoricalBarrierPlan] = {}
     historical_preloads: dict[tuple[str, str], BinanceKlineFetchResult] = {}
     historical_preload_failures: dict[tuple[str, str], str] = {}
-    historical_preload_end = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+    historical_preload_end = datetime.now(UTC).replace(second=0, microsecond=0)
     historical_preload_request_count = 0
     historical_tail_request_count = 0
     batch_entry_time: datetime | None = None
@@ -1790,7 +1824,7 @@ async def discover_crypto_threshold_edges(
                 gamma_terminal_status = "complete"
             gamma_snapshot_result = snapshot_recorder.finalize(
                 terminal_status=gamma_terminal_status,
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             )
 
         markets = filter_markets(raw_markets, args.min_volume, args.max_markets)
@@ -2125,9 +2159,9 @@ def build_summary(
     diagnostics: list[dict[str, Any]] | None = None,
     gamma_snapshot_result: GammaSnapshotResult | None = None,
 ) -> dict[str, Any]:
-    ended = datetime.now(timezone.utc)
+    ended = datetime.now(UTC)
     duration_started = (
-        started if started.tzinfo is not None else started.replace(tzinfo=timezone.utc)
+        started if started.tzinfo is not None else started.replace(tzinfo=UTC)
     )
     expected_edges = [safe_float(row.get("expected_edge")) for row in candidates]
     confidences = [safe_float(row.get("confidence")) for row in candidates]

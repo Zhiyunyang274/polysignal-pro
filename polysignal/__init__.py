@@ -17,9 +17,9 @@ __author__ = "PolySignal Pro Team"
 # Import key models for convenience
 from polysignal.models.market import Market, MarketCategory, MarketStatus
 from polysignal.models.orderbook import OrderBookSnapshot, OrderBookUpdate
-from polysignal.models.signal import Signal, SignalSide, ComponentScores
-from polysignal.models.risk import RiskAction, RiskDecision, RiskContext
-from polysignal.models.paper_trade import PaperOrder, PaperPosition, OrderSide, OrderStatus
+from polysignal.models.paper_trade import OrderSide, OrderStatus, PaperOrder, PaperPosition
+from polysignal.models.risk import RiskAction, RiskContext, RiskDecision
+from polysignal.models.signal import ComponentScores, Signal, SignalSide
 
 __all__ = [
     # Version

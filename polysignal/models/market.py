@@ -6,9 +6,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
+
+from polysignal.utils.time import utc_now
 
 
 class MarketCategory(str, Enum):
@@ -37,33 +38,33 @@ class Market(BaseModel):
     """Polymarket market information"""
     market_id: str = Field(..., description="Polymarket market ID")
     title: str = Field(..., description="Market title")
-    description: Optional[str] = Field(None, description="Market description")
+    description: str | None = Field(None, description="Market description")
     category: MarketCategory = Field(default=MarketCategory.OTHER, description="Market category")
     status: MarketStatus = Field(default=MarketStatus.OPEN)
 
     # Token addresses
-    yes_token_address: Optional[str] = None
-    no_token_address: Optional[str] = None
+    yes_token_address: str | None = None
+    no_token_address: str | None = None
 
     # Volume information
     total_volume_usd: float = Field(0.0, ge=0)
     volume_24h_usd: float = Field(0.0, ge=0)
 
     # Time information
-    created_at: Optional[datetime] = None
-    close_time: Optional[datetime] = None
-    resolution_time: Optional[datetime] = None
+    created_at: datetime | None = None
+    close_time: datetime | None = None
+    resolution_time: datetime | None = None
 
     # Resolution information
-    resolution_source: Optional[str] = Field(None, description="Resolution source")
-    resolution_criteria: Optional[str] = Field(None, description="Resolution criteria")
+    resolution_source: str | None = Field(None, description="Resolution source")
+    resolution_criteria: str | None = Field(None, description="Resolution criteria")
 
     # Risk flags
     is_ambiguous: bool = Field(False, description="Has ambiguous rules")
     is_forbidden_auto: bool = Field(False, description="Forbidden for auto execution")
 
     # Metadata
-    fetched_at: datetime = Field(default_factory=datetime.utcnow)
+    fetched_at: datetime = Field(default_factory=utc_now)
 
     def is_tradable(self) -> bool:
         """Check if market is tradable"""
@@ -89,4 +90,4 @@ class MarketList(BaseModel):
     """List of markets"""
     markets: list[Market] = Field(default_factory=list)
     total_count: int = Field(0, ge=0)
-    fetched_at: datetime = Field(default_factory=datetime.utcnow)
+    fetched_at: datetime = Field(default_factory=utc_now)

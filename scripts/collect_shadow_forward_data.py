@@ -13,21 +13,36 @@ import csv
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 
 from polysignal.shadow.exit_rules import ExitRuleConfig, decide_exit
 from polysignal.shadow.forward_observations import ForwardObservation
-from polysignal.shadow.models import SHADOW_TRADE_FIELDS, ExitReason, ShadowSide, ShadowTrade, ShadowTradeStatus
-from polysignal.shadow.pnl import apply_excursions, apply_exit_to_trade, mark_insufficient_forward_data
-from polysignal.shadow.reporter import build_performance_summary, write_performance_report_md, write_performance_summary_json, write_shadow_positions_json, write_shadow_trades_csv
-
+from polysignal.shadow.models import (
+    SHADOW_TRADE_FIELDS,
+    ExitReason,
+    ShadowSide,
+    ShadowTrade,
+    ShadowTradeStatus,
+)
+from polysignal.shadow.pnl import (
+    apply_excursions,
+    apply_exit_to_trade,
+    mark_insufficient_forward_data,
+)
+from polysignal.shadow.reporter import (
+    build_performance_summary,
+    write_performance_report_md,
+    write_performance_summary_json,
+    write_shadow_positions_json,
+    write_shadow_trades_csv,
+)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Collect offline forward observations for shadow trades")
     parser.add_argument("--runs_dir", type=str, default="runs")
     parser.add_argument("--shadow_dir", type=str, default="runs/shadow")
@@ -48,7 +63,7 @@ def safe_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
-def optional_float(value: Any) -> Optional[float]:
+def optional_float(value: Any) -> float | None:
     if value in (None, ""):
         return None
     try:
@@ -57,7 +72,7 @@ def optional_float(value: Any) -> Optional[float]:
         return None
 
 
-def parse_time(value: str) -> Optional[datetime]:
+def parse_time(value: str) -> datetime | None:
     if not value:
         return None
     try:
@@ -78,7 +93,7 @@ def load_json(path: Path) -> Any:
 def load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    with open(path, "r") as f:
+    with open(path) as f:
         data = yaml.safe_load(f) or {}
     return data if isinstance(data, dict) else {}
 
@@ -175,7 +190,7 @@ def build_trajectory_index(raw: Any) -> dict[str, list[dict[str, Any]]]:
     return index
 
 
-def observation_from_trajectory(trade: ShadowTrade, observation: dict[str, Any]) -> Optional[ForwardObservation]:
+def observation_from_trajectory(trade: ShadowTrade, observation: dict[str, Any]) -> ForwardObservation | None:
     timestamp = str(observation.get("timestamp") or "")
     observed_price = optional_float(observation.get("observed_price"))
     if observed_price is None:
@@ -340,7 +355,7 @@ def print_summary(summary: dict[str, Any], dry_run: bool) -> None:
     print(f"forward_data_limitation: {summary['forward_data_limitation']}")
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     exit_config = ExitRuleConfig(
         fixed_horizon_minutes=args.fixed_horizon_minutes,

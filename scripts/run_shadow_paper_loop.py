@@ -13,23 +13,31 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-from pathlib import Path
-from typing import Any, Optional
 from collections import Counter
+from pathlib import Path
+from typing import Any
 
 import yaml
 
-from polysignal.shadow.entry_filter import EntryDecision, EntryFilterConfig, ShadowEntryFilter, filter_shadow_entries
+from polysignal.shadow.entry_filter import (
+    EntryDecision,
+    EntryFilterConfig,
+    ShadowEntryFilter,
+    filter_shadow_entries,
+)
 from polysignal.shadow.exit_rules import ExitRuleConfig, decide_exit
 from polysignal.shadow.models import CandidateSnapshot, ShadowSide, ShadowTrade
-from polysignal.shadow.pnl import apply_excursions, apply_exit_to_trade, mark_insufficient_forward_data
+from polysignal.shadow.pnl import (
+    apply_excursions,
+    apply_exit_to_trade,
+    mark_insufficient_forward_data,
+)
 from polysignal.shadow.reporter import write_all_reports_with_diagnostics
-
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate offline shadow paper trades")
     parser.add_argument("--runs_dir", type=str, default="runs")
     parser.add_argument("--output_dir", type=str, default="runs/shadow")
@@ -71,7 +79,7 @@ def load_csv(path: Path) -> list[dict[str, str]]:
 def load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    with open(path, "r") as f:
+    with open(path) as f:
         data = yaml.safe_load(f) or {}
     return data if isinstance(data, dict) else {}
 
@@ -91,7 +99,7 @@ def safe_bool(value: Any) -> bool:
     return str(value or "").strip().lower() in {"true", "1", "yes", "y"}
 
 
-def safe_optional_bool(value: Any) -> Optional[bool]:
+def safe_optional_bool(value: Any) -> bool | None:
     if value in (None, ""):
         return None
     if isinstance(value, bool):
@@ -324,7 +332,7 @@ def candidate_from_tradable(row: dict[str, str], avoid_ids: set[str]) -> Candida
     )
 
 
-def load_tradable_candidates(runs_dir: Path, avoid_ids: set[str]) -> Optional[list[CandidateSnapshot]]:
+def load_tradable_candidates(runs_dir: Path, avoid_ids: set[str]) -> list[CandidateSnapshot] | None:
     crypto_threshold_path = runs_dir / "crypto_threshold_edge_candidates.csv"
     cross_market_convergence_path = runs_dir / "cross_market_edge_candidates_convergence_gated.csv"
     cross_market_calibrated_path = runs_dir / "cross_market_edge_candidates_calibrated.csv"
@@ -628,7 +636,7 @@ def run(args: argparse.Namespace) -> int:
     return 0
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     return run(parse_args(argv))
 
 

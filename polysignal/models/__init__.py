@@ -2,28 +2,28 @@
 Models Package - Core Pydantic models for PolySignal Pro
 """
 
-from polysignal.models.market import Market, MarketCategory, MarketStatus, MarketList
+from polysignal.models.event import (
+    EventAssessment,
+    LLMResponse,
+    MarketRuleAssessment,
+    SuggestedMode,
+)
+from polysignal.models.market import Market, MarketCategory, MarketList, MarketStatus
 from polysignal.models.orderbook import (
+    OrderBookSide,
     OrderBookSnapshot,
     OrderBookUpdate,
-    OrderBookSide,
     PriceLevel,
 )
-from polysignal.models.signal import Signal, SignalSide, SignalStrength, ComponentScores
-from polysignal.models.risk import RiskAction, RiskDecision, RiskContext
 from polysignal.models.paper_trade import (
+    OrderSide,
+    OrderStatus,
     PaperOrder,
     PaperPosition,
     PaperTradeStats,
-    OrderSide,
-    OrderStatus,
 )
-from polysignal.models.event import (
-    EventAssessment,
-    MarketRuleAssessment,
-    SuggestedMode,
-    LLMResponse,
-)
+from polysignal.models.risk import RiskAction, RiskContext, RiskDecision
+from polysignal.models.signal import ComponentScores, Signal, SignalSide, SignalStrength
 
 __all__ = [
     # Market

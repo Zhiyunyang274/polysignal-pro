@@ -34,7 +34,7 @@ class CrossMarketConvergenceObservation:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "CrossMarketConvergenceObservation":
+    def from_dict(cls, data: dict[str, Any]) -> CrossMarketConvergenceObservation:
         payload = dict(data)
         for key in [
             "entry_price",

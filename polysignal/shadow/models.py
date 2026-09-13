@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 from uuid import uuid4
 
 
@@ -46,7 +46,7 @@ class CandidateSnapshot:
     combined_ask_gap: float = 0.0
     expected_edge_source: str = ""
     expected_edge_status: str = ""
-    edge_pass: Optional[bool] = None
+    edge_pass: bool | None = None
     edge_failure_reason: str = ""
     edge_notes: str = ""
     confidence: float = 0.0
@@ -58,7 +58,7 @@ class CandidateSnapshot:
     reference_market_id: str = ""
     reference_question: str = ""
     reference_price: float = 0.0
-    convergence_gate_passed: Optional[bool] = None
+    convergence_gate_passed: bool | None = None
     convergence_score: float = 0.0
     convergence_status: str = ""
     convergence_reason: str = ""
@@ -68,7 +68,7 @@ class CandidateSnapshot:
     gap_change: float = 0.0
     feedback_gate_status: str = ""
     feedback_gate_reason: str = ""
-    gate_passed: Optional[bool] = None
+    gate_passed: bool | None = None
     entry_yes_best_ask: float = 0.0
     entry_no_best_ask: float = 0.0
     entry_yes_best_bid: float = 0.0
@@ -98,6 +98,16 @@ class CandidateSnapshot:
     no_token_id: str = ""
     observations: list[dict[str, Any]] = field(default_factory=list)
 
+    def side_entry_ask(self) -> float:
+        if self.side == ShadowSide.NO:
+            return self.entry_no_best_ask
+        return self.entry_yes_best_ask
+
+    def side_entry_bid(self) -> float:
+        if self.side == ShadowSide.NO:
+            return self.entry_no_best_bid
+        return self.entry_yes_best_bid
+
 
 @dataclass
 class ShadowTrade:
@@ -125,7 +135,7 @@ class ShadowTrade:
     reference_market_id: str = ""
     reference_question: str = ""
     reference_price: float = 0.0
-    convergence_gate_passed: Optional[bool] = None
+    convergence_gate_passed: bool | None = None
     convergence_score: float = 0.0
     convergence_status: str = ""
     convergence_reason: str = ""
@@ -138,7 +148,7 @@ class ShadowTrade:
     entry_yes_best_bid: float = 0.0
     entry_no_best_bid: float = 0.0
     entry_side_price: float = 0.0
-    exit_side_price: Optional[float] = None
+    exit_side_price: float | None = None
     entry_price_source: str = ""
     exit_price_source: str = ""
     price_model_status: str = ""
@@ -146,8 +156,8 @@ class ShadowTrade:
     tradable_score: float = 0.0
     yes_token_id: str = ""
     no_token_id: str = ""
-    exit_time: Optional[str] = None
-    exit_price: Optional[float] = None
+    exit_time: str | None = None
+    exit_price: float | None = None
     exit_reason: ExitReason = ExitReason.OPEN
     pnl: float = 0.0
     return_pct: float = 0.0
@@ -164,7 +174,7 @@ class ShadowTrade:
     holding_minutes: float = 0.0
 
     @classmethod
-    def from_candidate(cls, candidate: CandidateSnapshot, entry_reason: str) -> "ShadowTrade":
+    def from_candidate(cls, candidate: CandidateSnapshot, entry_reason: str) -> ShadowTrade:
         entry_side_price = candidate.entry_side_price or candidate.side_entry_ask()
         return cls(
             shadow_trade_id=f"shadow_{uuid4().hex[:12]}",
@@ -225,7 +235,7 @@ class ShadowTrade:
         return payload
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ShadowTrade":
+    def from_dict(cls, data: dict[str, Any]) -> ShadowTrade:
         payload = dict(data)
         payload["side"] = ShadowSide(payload.get("side", ShadowSide.YES.value))
         payload["exit_reason"] = ExitReason(payload.get("exit_reason", ExitReason.OPEN.value))
@@ -239,22 +249,6 @@ class ShadowTrade:
         self.exit_side_price = value
         self.exit_price = value
         self.exit_price_source = source
-
-
-def _side_entry_ask(candidate: CandidateSnapshot) -> float:
-    if candidate.side == ShadowSide.NO:
-        return candidate.entry_no_best_ask
-    return candidate.entry_yes_best_ask
-
-
-def _side_entry_bid(candidate: CandidateSnapshot) -> float:
-    if candidate.side == ShadowSide.NO:
-        return candidate.entry_no_best_bid
-    return candidate.entry_yes_best_bid
-
-
-CandidateSnapshot.side_entry_ask = _side_entry_ask  # type: ignore[attr-defined]
-CandidateSnapshot.side_entry_bid = _side_entry_bid  # type: ignore[attr-defined]
 
 
 SHADOW_TRADE_FIELDS = [

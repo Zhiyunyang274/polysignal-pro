@@ -18,24 +18,25 @@ from __future__ import annotations
 
 import time
 from enum import Enum
-from typing import Literal, Optional, TypeVar
+from typing import TypeVar
 
 from pydantic import BaseModel
 
 from polysignal.llm.base import LLMProvider
+from polysignal.llm.deepseek_provider import DeepSeekProvider
+from polysignal.llm.glm_provider import GLMProvider
 from polysignal.llm.llm_config import (
-    GLMConfig,
     DeepSeekConfig,
+    GLMConfig,
+    LLMConfig,
     RouterConfig,
     SenseNovaConfig,
     XFyunAnthropicConfig,
 )
 from polysignal.llm.llm_errors import LLMError
-from polysignal.llm.deepseek_provider import DeepSeekProvider
-from polysignal.llm.glm_provider import GLMProvider
-from polysignal.llm.sensenova_provider import SenseNovaProvider, SenseNovaConfig as SenseNovaProviderConfig
-from polysignal.llm.xfyun_anthropic_provider import XFyunAnthropicProvider, XFyunAnthropicConfig as XFyunProviderConfig
 from polysignal.llm.mock_provider import MockLLMProvider, MockScenario
+from polysignal.llm.sensenova_provider import SenseNovaProvider
+from polysignal.llm.xfyun_anthropic_provider import XFyunAnthropicProvider
 from polysignal.models.event import LLMResponse
 
 T = TypeVar("T", bound=BaseModel)
@@ -60,11 +61,11 @@ class ProviderRouter(LLMProvider):
 
     def __init__(
         self,
-        config: Optional[RouterConfig] = None,
-        deepseek_config: Optional[DeepSeekConfig] = None,
-        glm_config: Optional[GLMConfig] = None,
-        sensenova_config: Optional[SenseNovaConfig] = None,
-        xfyun_anthropic_config: Optional[XFyunAnthropicConfig] = None,
+        config: RouterConfig | None = None,
+        deepseek_config: DeepSeekConfig | None = None,
+        glm_config: GLMConfig | None = None,
+        sensenova_config: SenseNovaConfig | None = None,
+        xfyun_anthropic_config: XFyunAnthropicConfig | None = None,
         mock_scenario: MockScenario = MockScenario.SUCCESS,
     ):
         """
@@ -81,11 +82,11 @@ class ProviderRouter(LLMProvider):
         self.config = config or RouterConfig()
 
         # Initialize providers
-        self._deepseek: Optional[DeepSeekProvider] = None
-        self._glm: Optional[GLMProvider] = None
-        self._sensenova: Optional[SenseNovaProvider] = None
-        self._xfyun_anthropic: Optional[XFyunAnthropicProvider] = None
-        self._mock: Optional[MockLLMProvider] = None
+        self._deepseek: DeepSeekProvider | None = None
+        self._glm: GLMProvider | None = None
+        self._sensenova: SenseNovaProvider | None = None
+        self._xfyun_anthropic: XFyunAnthropicProvider | None = None
+        self._mock: MockLLMProvider | None = None
 
         # Store configs for lazy initialization
         self._deepseek_config = deepseek_config
@@ -114,7 +115,7 @@ class ProviderRouter(LLMProvider):
     def sensenova(self) -> SenseNovaProvider:
         """Get SenseNova provider (lazy initialization)"""
         if self._sensenova is None:
-            config = self._sensenova_config or SenseNovaProviderConfig()
+            config = self._sensenova_config or SenseNovaConfig()
             self._sensenova = SenseNovaProvider(config=config)
         return self._sensenova
 
@@ -122,7 +123,7 @@ class ProviderRouter(LLMProvider):
     def xfyun_anthropic(self) -> XFyunAnthropicProvider:
         """Get XFyun Anthropic provider (lazy initialization)"""
         if self._xfyun_anthropic is None:
-            config = self._xfyun_anthropic_config or XFyunProviderConfig()
+            config = self._xfyun_anthropic_config or XFyunAnthropicConfig()
             self._xfyun_anthropic = XFyunAnthropicProvider(config=config)
         return self._xfyun_anthropic
 
@@ -190,7 +191,7 @@ class ProviderRouter(LLMProvider):
         fallback_chain = self._build_fallback_chain(primary_provider_name)
 
         # Try primary provider
-        last_response: Optional[LLMResponse] = None
+        last_response: LLMResponse | None = None
 
         try:
             response = await primary_provider.analyze(
@@ -337,7 +338,7 @@ class ProviderRouter(LLMProvider):
 
 
 def create_llm_provider_from_config(
-    config: "LLMConfig",
+    config: LLMConfig,
 ) -> LLMProvider:
     """
     Create LLM provider from configuration.

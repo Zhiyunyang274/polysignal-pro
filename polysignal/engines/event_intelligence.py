@@ -21,21 +21,18 @@ Risk Governor makes all final decisions.
 from __future__ import annotations
 
 import time
-from datetime import datetime
-from typing import Optional
 
-from polysignal.models.event import (
-    EventAssessment,
-    MarketRuleAssessment,
-    SuggestedMode,
-    LLMResponse,
-    create_default_assessment,
-    check_forbidden_trading_fields,
-)
-from polysignal.models.market import Market
 from polysignal.llm.base import LLMProvider
 from polysignal.llm.mock_provider import MockLLMProvider, MockScenario
 from polysignal.llm.schemas import EventAnalysisSchema, MarketRuleSchema
+from polysignal.models.event import (
+    EventAssessment,
+    LLMResponse,
+    MarketRuleAssessment,
+    SuggestedMode,
+    create_default_assessment,
+)
+from polysignal.models.market import Market
 
 
 class EventIntelligenceEngine:
@@ -54,7 +51,7 @@ class EventIntelligenceEngine:
 
     def __init__(
         self,
-        llm_provider: Optional[LLMProvider] = None,
+        llm_provider: LLMProvider | None = None,
         scenario: MockScenario = MockScenario.SUCCESS,
     ):
         """
@@ -79,7 +76,7 @@ class EventIntelligenceEngine:
     def assess(
         self,
         market: Market,
-        event_context: Optional[str] = None,
+        event_context: str | None = None,
     ) -> EventAssessment:
         """
         Assess market for event intelligence.
@@ -99,7 +96,7 @@ class EventIntelligenceEngine:
     async def assess_async(
         self,
         market: Market,
-        event_context: Optional[str] = None,
+        event_context: str | None = None,
     ) -> EventAssessment:
         """
         Assess market for event intelligence (async).
@@ -128,7 +125,7 @@ class EventIntelligenceEngine:
         # Handle LLM response
         return self._process_response(market.market_id, response, latency)
 
-    def _build_prompt(self, market: Market, event_context: Optional[str]) -> str:
+    def _build_prompt(self, market: Market, event_context: str | None) -> str:
         """Build prompt for LLM analysis"""
         prompt_parts = [
             f"Market ID: {market.market_id}",
@@ -200,7 +197,15 @@ class EventIntelligenceEngine:
                 explanation="LLM response has no parsed output",
             )
 
+        # parsed_output is typed as a generic BaseModel; narrow fail-closed so a
+        # provider returning an unexpected model degrades instead of crashing.
         parsed = response.parsed_output
+        if not isinstance(parsed, EventAnalysisSchema):
+            return create_default_assessment(
+                market_id=market_id,
+                error_flag="llm_no_parsed_output",
+                explanation=f"Unexpected parsed output type: {type(parsed).__name__}",
+            )
 
         # Build EventAssessment from parsed output
         risk_flags = list(parsed.risk_flags)
@@ -307,6 +312,13 @@ class EventIntelligenceEngine:
             )
 
         parsed = response.parsed_output
+        if not isinstance(parsed, MarketRuleSchema):
+            return MarketRuleAssessment(
+                rule_clarity=50.0,
+                resolution_source_reliability=50.0,
+                confidence=0.0,
+                explanation=f"Unexpected parsed output type: {type(parsed).__name__}",
+            )
 
         return MarketRuleAssessment(
             rule_clarity=parsed.rule_clarity,

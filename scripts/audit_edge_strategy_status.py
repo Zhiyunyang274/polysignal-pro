@@ -12,10 +12,9 @@ import csv
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from scripts.discover_executable_edges import verify_safety
-
 
 REGISTRY_FIELDS = [
     "edge_type",
@@ -79,7 +78,7 @@ NEXT_EDGE_SOURCE_COMPARISON = [
 ]
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Audit tested edge strategy status")
     parser.add_argument("--runs_dir", type=str, default="runs")
     parser.add_argument("--shadow_dir", type=str, default="runs/shadow")
@@ -367,7 +366,7 @@ def print_summary(summary: dict[str, Any], rows: list[dict[str, Any]], dry_run: 
         print(f"{row['edge_type']}: {row['recommended_status']} — {row['reason']}")
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     rows, summary = audit_edge_status(args)
     print_summary(summary, rows, args.dry_run)

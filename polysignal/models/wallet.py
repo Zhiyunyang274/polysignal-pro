@@ -6,9 +6,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
+
+from polysignal.utils.time import utc_now
 
 
 class WalletSpecialization(str, Enum):
@@ -23,11 +24,11 @@ class WalletSpecialization(str, Enum):
 class WatchlistEntry(BaseModel):
     """Watchlist wallet entry"""
     address: str = Field(..., description="Wallet address")
-    alias: Optional[str] = Field(None, description="Human-readable alias")
-    category: Optional[str] = Field(None, description="Wallet category (whale, researcher, etc.)")
+    alias: str | None = Field(None, description="Human-readable alias")
+    category: str | None = Field(None, description="Wallet category (whale, researcher, etc.)")
     is_active: bool = Field(True, description="Whether actively monitored")
-    added_at: datetime = Field(default_factory=datetime.utcnow)
-    notes: Optional[str] = None
+    added_at: datetime = Field(default_factory=utc_now)
+    notes: str | None = None
 
 
 class WalletActivity(BaseModel):
@@ -39,8 +40,8 @@ class WalletActivity(BaseModel):
     price: float
     size_usd: float
     timestamp: datetime
-    tx_hash: Optional[str] = None
-    pnl_usd: Optional[float] = None  # Realized PnL if closed
+    tx_hash: str | None = None
+    pnl_usd: float | None = None  # Realized PnL if closed
 
 
 class WalletActivityHistory(BaseModel):
@@ -52,8 +53,8 @@ class WalletActivityHistory(BaseModel):
     win_count: int = 0
     loss_count: int = 0
     total_pnl_usd: float = 0.0
-    first_activity: Optional[datetime] = None
-    last_activity: Optional[datetime] = None
+    first_activity: datetime | None = None
+    last_activity: datetime | None = None
 
     def get_win_rate(self) -> float:
         """Calculate win rate"""
@@ -65,7 +66,7 @@ class WalletActivityHistory(BaseModel):
 class WalletProfile(BaseModel):
     """Wallet profile from historical analysis"""
     wallet_address: str
-    alias: Optional[str] = None
+    alias: str | None = None
 
     # Basic stats
     total_trades: int = 0
@@ -101,7 +102,7 @@ class WalletProfile(BaseModel):
     wallet_score: float = 50.0
 
     # Metadata
-    profile_generated_at: datetime = Field(default_factory=datetime.utcnow)
+    profile_generated_at: datetime = Field(default_factory=utc_now)
     data_staleness_hours: float = 0.0
 
 
@@ -119,7 +120,7 @@ class WalletMarketActivity(BaseModel):
 class WalletConsensus(BaseModel):
     """Wallet consensus for a market"""
     market_id: str
-    direction: Optional[str] = None  # "yes", "no", or None if no consensus
+    direction: str | None = None  # "yes", "no", or None if no consensus
     consensus_score: float = 0.0  # 0-100
     active_wallet_count: int = 0
     same_direction_count: int = 0
@@ -137,7 +138,7 @@ class WalletAssessment(BaseModel):
     copy_risk_score: float = Field(0.0, ge=0, le=100)  # 0-100, higher = more risky
 
     # Consensus info
-    consensus: Optional[WalletConsensus] = None
+    consensus: WalletConsensus | None = None
 
     # Risk flags
     risk_flags: list[str] = Field(default_factory=list)
@@ -149,7 +150,7 @@ class WalletAssessment(BaseModel):
     explanation: str = ""
 
     # Metadata
-    assessed_at: datetime = Field(default_factory=datetime.utcnow)
+    assessed_at: datetime = Field(default_factory=utc_now)
 
     def get_copy_risk_penalty(self) -> float:
         """Calculate copy risk penalty (0-30)"""

@@ -5,16 +5,15 @@ from __future__ import annotations
 import ast
 import csv
 import json
-from pathlib import Path
-from typing import Any, Optional
-
-import pytest
 
 # Import from run_paper.py
 import sys
+from pathlib import Path
+
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from scripts.run_paper import RunConfig, RunStatistics
-
 
 # =============================================================================
 # Fixtures
@@ -237,7 +236,7 @@ class TestValidationDataLoaderControlGroup:
 
 class TestAvoidValidatorWithControlGroup:
     def test_group_comparison_with_control_group(self, tmp_runs_with_cg: Path):
-        from scripts.validate_strategy_signals import ValidationDataLoader, AvoidValidator
+        from scripts.validate_strategy_signals import AvoidValidator, ValidationDataLoader
         loader = ValidationDataLoader(tmp_runs_with_cg)
         avoid = loader.load_avoid_candidates()
         events = loader.load_all_llm_events()
@@ -251,7 +250,7 @@ class TestAvoidValidatorWithControlGroup:
         assert comparison.conclusion_status != "insufficient_control_group"
 
     def test_group_comparison_without_control_group(self, tmp_runs_with_cg: Path):
-        from scripts.validate_strategy_signals import ValidationDataLoader, AvoidValidator
+        from scripts.validate_strategy_signals import AvoidValidator, ValidationDataLoader
         loader = ValidationDataLoader(tmp_runs_with_cg)
         avoid = loader.load_avoid_candidates()
         events = loader.load_all_llm_events()

@@ -4,22 +4,20 @@ Tests for Data Provider Manager
 Tests the unified data provider with mode switching and fallback.
 """
 
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
-import httpx
+from unittest.mock import patch
 
-from polysignal.ingestion.data_provider_manager import (
-    DataProviderManager,
-    DataMode,
-)
+import httpx
+import pytest
+
 from polysignal.ingestion.api_errors import APIError
-from polysignal.ingestion.api_types import GammaMarket
+from polysignal.ingestion.data_provider_manager import (
+    DataMode,
+    DataProviderManager,
+)
 from polysignal.models.market import MarketCategory, MarketStatus
 from tests.fixtures.api_responses import (
-    create_gamma_market_response,
-    create_gamma_markets_list_response,
-    create_clob_orderbook_response,
     create_clob_orderbook_mispricing,
+    create_gamma_markets_list_response,
 )
 
 
@@ -62,8 +60,8 @@ class TestDataProviderManager:
 
     def test_custom_clients(self):
         """Test using custom clients"""
-        from polysignal.ingestion.gamma_client import GammaAPIClient
         from polysignal.ingestion.clob_client import CLOBReadOnlyClient
+        from polysignal.ingestion.gamma_client import GammaAPIClient
 
         custom_gamma = GammaAPIClient(base_url="https://custom.gamma")
         custom_clob = CLOBReadOnlyClient(base_url="https://custom.clob")

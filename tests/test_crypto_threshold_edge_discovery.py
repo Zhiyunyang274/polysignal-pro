@@ -4,7 +4,7 @@ import csv
 import hashlib
 import json
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -77,7 +77,7 @@ class FakeSpotProvider:
 
     async def get_spot_prices(self, assets):
         self.calls.append(list(assets))
-        observed_at = self.timestamp or datetime.now(timezone.utc).isoformat().replace(
+        observed_at = self.timestamp or datetime.now(UTC).isoformat().replace(
             "+00:00", "Z"
         )
         return {
@@ -233,7 +233,7 @@ def orderbook(
         asset_id=asset_id,
         bids=[{"price": str(bid), "size": str(size)}],
         asks=[{"price": str(ask), "size": str(size)}],
-        timestamp=timestamp or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        timestamp=timestamp or datetime.now(UTC).isoformat().replace("+00:00", "Z"),
     )
 
 
@@ -556,7 +556,7 @@ def test_entry_timestamp_is_causal_and_preserves_quote_provenance(tmp_path: Path
             self.timestamp = ""
 
         async def get_spot_prices(self, assets):
-            self.timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            self.timestamp = datetime.now(UTC).isoformat().replace("+00:00", "Z")
             return {
                 asset: discovery.SpotPrice(
                     asset=asset,
@@ -871,9 +871,9 @@ def test_explicit_history_preload_is_deduplicated_and_tail_is_verified(tmp_path:
     )
     spot = FakeSpotProvider({"BTC": 100000.0}, timestamp=quote_time)
     historical = FakeHistoricalKlineClient()
-    clock = FakeClock(datetime(2026, 8, 4, 12, 2, 30, tzinfo=timezone.utc))
-    preload_time = datetime(2026, 8, 4, 12, 2, tzinfo=timezone.utc)
-    entry_time = datetime(2026, 8, 4, 12, 3, tzinfo=timezone.utc)
+    clock = FakeClock(datetime(2026, 8, 4, 12, 2, 30, tzinfo=UTC))
+    preload_time = datetime(2026, 8, 4, 12, 2, tzinfo=UTC)
+    entry_time = datetime(2026, 8, 4, 12, 3, tzinfo=UTC)
 
     candidates, summary = asyncio.run(
         discovery.discover_crypto_threshold_edges(
@@ -891,10 +891,10 @@ def test_explicit_history_preload_is_deduplicated_and_tail_is_verified(tmp_path:
     assert len(historical.calls) == 2
     assert historical.calls[0] == (
         "BTCUSDT",
-        datetime(2026, 8, 4, 12, 0, tzinfo=timezone.utc),
+        datetime(2026, 8, 4, 12, 0, tzinfo=UTC),
         preload_time,
     )
-    assert historical.calls[1][1] == datetime(2026, 8, 4, 12, 1, tzinfo=timezone.utc)
+    assert historical.calls[1][1] == datetime(2026, 8, 4, 12, 1, tzinfo=UTC)
     assert historical.calls[1][2] == entry_time
     assert clock.sleep_calls == [30.0]
     for row in candidates:
@@ -928,7 +928,7 @@ def test_historical_high_boundary_cross_is_watch_only(tmp_path: Path):
     )
     spot = FakeSpotProvider({"BTC": 100000.0}, timestamp=quote_time)
     historical = FakeHistoricalKlineClient(high_price="110000")
-    clock = FakeClock(datetime(2026, 8, 4, 12, 2, 30, tzinfo=timezone.utc))
+    clock = FakeClock(datetime(2026, 8, 4, 12, 2, 30, tzinfo=UTC))
 
     candidates, _ = asyncio.run(
         discovery.discover_crypto_threshold_edges(
@@ -959,7 +959,7 @@ def test_nonzero_second_clock_schedules_valid_minute_batch_entry(tmp_path: Path)
     )
     spot = FakeSpotProvider({"BTC": 100000.0}, timestamp=quote_time)
     historical = FakeHistoricalKlineClient()
-    clock = FakeClock(datetime(2026, 8, 4, 12, 2, 17, tzinfo=timezone.utc))
+    clock = FakeClock(datetime(2026, 8, 4, 12, 2, 17, tzinfo=UTC))
 
     candidates, _ = asyncio.run(
         discovery.discover_crypto_threshold_edges(
@@ -995,7 +995,7 @@ def test_nonzero_second_clock_schedules_valid_minute_batch_entry(tmp_path: Path)
 
 def test_stale_batch_evidence_fails_closed_at_discovery(tmp_path: Path):
     stale_time = "2026-08-04T12:01:59Z"
-    clock = FakeClock(datetime(2026, 8, 4, 12, 2, 30, tzinfo=timezone.utc))
+    clock = FakeClock(datetime(2026, 8, 4, 12, 2, 30, tzinfo=UTC))
     candidates, _ = asyncio.run(
         discovery.discover_crypto_threshold_edges(
             args(tmp_path),
@@ -1029,7 +1029,7 @@ def test_historical_preload_exception_fails_closed_without_crashing(tmp_path: Pa
 
     historical = FailingHistoricalClient()
     quote_time = "2026-08-04T12:02:30Z"
-    clock = FakeClock(datetime(2026, 8, 4, 12, 2, 30, tzinfo=timezone.utc))
+    clock = FakeClock(datetime(2026, 8, 4, 12, 2, 30, tzinfo=UTC))
 
     candidates, summary = asyncio.run(
         discovery.discover_crypto_threshold_edges(
@@ -1342,3 +1342,30 @@ def test_live_trading_enabled_false():
     risk = yaml.safe_load(Path("config/risk.yaml").read_text())
 
     assert risk["live_trading_enabled"] is False
+
+
+class TestThresholdPriceLowPricedAssets:
+    """ADR-028: dollar-anchored thresholds of any magnitude are explicit prices."""
+
+    def test_xrp_sub_dollar_threshold(self):
+        value, confidence = discovery.parse_threshold_price("Will XRP dip to $0.80 by December 31, 2026?")
+        assert value == pytest.approx(0.80)
+        assert confidence == pytest.approx(0.25)
+
+    def test_doge_sub_dollar_threshold(self):
+        value, _ = discovery.parse_threshold_price("Will Dogecoin reach $0.20 by December 31, 2026?")
+        assert value == pytest.approx(0.20)
+
+    def test_dollar_anchored_year_band_is_a_price(self):
+        # "ETH reach $2000" — dollar-anchored values in the 1900-2100 band are
+        # genuine asset prices, not years.
+        value, _ = discovery.parse_threshold_price("Will ETH reach $2000 by December 31, 2026?")
+        assert value == pytest.approx(2000.0)
+
+    def test_bare_number_year_band_still_excluded(self):
+        value, _ = discovery.parse_threshold_price("Will the asset hit 2027 before December?")
+        assert value == 0.0
+
+    def test_large_price_unchanged(self):
+        value, _ = discovery.parse_threshold_price("Will Bitcoin reach $100,000 by December 31, 2026?")
+        assert value == pytest.approx(100_000.0)

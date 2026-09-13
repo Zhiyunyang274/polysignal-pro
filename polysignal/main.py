@@ -16,30 +16,31 @@ import asyncio
 import signal
 import sys
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
-from polysignal.config import Config, config, DataMode
-from polysignal.logging_config import setup_logging, get_logger, console
-from polysignal.ingestion.mock_data_provider import MockDataProvider
-from polysignal.ingestion.data_provider_manager import DataProviderManager
+from polysignal.config import Config, config
 from polysignal.engines.market_microstructure import MarketMicrostructureEngine
-from polysignal.strategies.yes_no_mispricing import YesNoMispricingStrategy
-from polysignal.strategies.base import StrategyContext
-from polysignal.risk.risk_governor import RiskGovernor
-from polysignal.execution.paper_trader import PaperTrader
+from polysignal.execution.account_state import AccountState
 from polysignal.execution.live_trader_stub import LiveTraderStub
-from polysignal.storage.database import Database
-from polysignal.models.risk import RiskContext, RiskAction
+from polysignal.execution.paper_trader import PaperTrader
+from polysignal.ingestion.data_provider_manager import DataMode as ProviderDataMode
+from polysignal.ingestion.data_provider_manager import DataProviderManager
+from polysignal.ingestion.mock_data_provider import MockDataProvider
 from polysignal.interface.cli import (
-    print_header,
     print_config_summary,
-    print_summary,
     print_error,
+    print_header,
     print_success,
+    print_summary,
 )
 from polysignal.interface.telegram_client import TelegramClient
-
+from polysignal.logging_config import get_logger, setup_logging
+from polysignal.models.risk import RiskAction, RiskContext
+from polysignal.risk.circuit_breaker import CircuitBreaker
+from polysignal.risk.risk_governor import RiskGovernor
+from polysignal.storage.database import Database
+from polysignal.strategies.base import StrategyContext
+from polysignal.strategies.yes_no_mispricing import YesNoMispricingStrategy
 
 logger = get_logger("polysignal.main")
 
@@ -66,17 +67,24 @@ class PolySignalPro:
         data_mode = config.get_data_mode()
         api_config = config.get_api_config()
 
-        # Initialize data provider manager
+        # Initialize data provider manager (config and ingestion each define
+        # an identical DataMode enum; convert by value at the boundary)
         self.data_provider = DataProviderManager(
-            mode=data_mode,
+            mode=ProviderDataMode(data_mode.value),
             gamma_base_url=api_config.gamma_base_url,
             clob_base_url=api_config.clob_base_url,
             timeout_seconds=api_config.timeout_seconds,
             max_retries=api_config.max_retries,
             mock_provider=MockDataProvider(
                 num_markets=config.markets.mock.num_markets,
-                price_range=tuple(config.markets.mock.price_range),
-                volume_range_usd=tuple(config.markets.mock.volume_range_usd),
+                price_range=(
+                    config.markets.mock.price_range[0],
+                    config.markets.mock.price_range[1],
+                ),
+                volume_range_usd=(
+                    config.markets.mock.volume_range_usd[0],
+                    config.markets.mock.volume_range_usd[1],
+                ),
                 seed=42,  # Reproducible for testing
             ),
         )
@@ -85,6 +93,14 @@ class PolySignalPro:
 
         self.strategy = YesNoMispricingStrategy(
             combined_ask_threshold=config.risk.scoring_weights.microstructure * 3.3,  # ~0.99
+        )
+
+        # Circuit breaker (D12): consumes config/risk.yaml circuit_breaker section
+        cb = config.risk.circuit_breaker
+        self.circuit_breaker = CircuitBreaker(
+            max_api_failures=cb.max_api_failures,
+            max_ws_disconnects=cb.max_ws_disconnects,
+            stale_data_threshold_seconds=cb.stale_data_threshold_seconds,
         )
 
         self.risk_governor = RiskGovernor(
@@ -111,6 +127,12 @@ class PolySignalPro:
 
         self.live_trader = LiveTraderStub(
             live_trading_enabled=config.risk.live_trading_enabled
+        )
+
+        # Account ledger: feeds real balance/PnL/exposure state into every
+        # RiskContext so the Risk Governor loss-limit hard rejections work.
+        self.account_state = AccountState(
+            starting_capital_usd=config.risk.max_account_capital_usd
         )
 
         self.database = Database(db_path=config.env.database_path)
@@ -167,7 +189,7 @@ class PolySignalPro:
         8. Store results
         """
         cycle_start = datetime.utcnow()
-        cycle_results = {
+        cycle_results: dict[str, Any] = {
             "markets_checked": 0,
             "signals_generated": 0,
             "signals_ignored": 0,
@@ -200,10 +222,9 @@ class PolySignalPro:
                     if orderbook is None:
                         continue
 
-                    # Analyze with microstructure engine
-                    micro_result = self.microstructure_engine.analyze_snapshot(orderbook)
-
-                    # Get component scores
+                    # Get component scores (get_component_scores runs the
+                    # microstructure analysis internally; a separate
+                    # analyze_snapshot call here would duplicate the work)
                     component_scores = self.microstructure_engine.get_component_scores(orderbook)
 
                     # Create strategy context
@@ -221,15 +242,22 @@ class PolySignalPro:
 
                     cycle_results["signals_generated"] += 1
 
-                    # Create risk context
+                    # Create risk context with live account state so loss
+                    # limits, exposure checks and the circuit breaker see
+                    # real values
                     risk_context = RiskContext(
                         live_trading_enabled=self.config.risk.live_trading_enabled,
                         allow_auto_execution=self.config.risk.allow_auto_execution,
-                        api_healthy=True,
-                        websocket_healthy=True,
+                        api_healthy=self.circuit_breaker.api_healthy,
+                        websocket_healthy=self.circuit_breaker.websocket_healthy,
+                        price_stale=orderbook.is_stale,
                         market_tradable=market.is_tradable(),
                         market_ambiguous=market.is_ambiguous,
                         market_forbidden=not market.is_auto_allowed(),
+                        **self.account_state.risk_context_fields(
+                            market_id=market.market_id,
+                            strategy_name=signal.strategy_name,
+                        ),
                     )
 
                     # Evaluate with Risk Governor
@@ -258,10 +286,15 @@ class PolySignalPro:
                 except Exception as e:
                     cycle_results["errors"].append(str(e))
                     logger.error(f"Error processing market {market.market_id}: {e}")
+                    self.circuit_breaker.record_api_failure()
+
+                else:
+                    self.circuit_breaker.record_api_success()
 
         except Exception as e:
             cycle_results["errors"].append(str(e))
             logger.error(f"Cycle error: {e}")
+            self.circuit_breaker.record_api_failure()
 
         # Log cycle summary
         cycle_duration = (datetime.utcnow() - cycle_start).total_seconds()
@@ -359,6 +392,13 @@ class PolySignalPro:
                     await self.database.save_paper_position(position)
                     self._positions.append(position)
 
+                # Ledger the filled entry so account-level risk state stays real
+                self.account_state.record_open(
+                    market_id=market.market_id,
+                    strategy_name=signal.strategy_name,
+                    notional_usd=order.filled_size * (order.filled_price or 0.0),
+                )
+
                 logger.info(
                     "Paper trade executed",
                     order_id=order.order_id,
@@ -406,13 +446,9 @@ class PolySignalPro:
             "circuit_breaker",
             "price_stale",
         }
-        for reason in decision.hard_reject_reasons:
-            if reason in system_error_reasons:
-                return True
+        return any(reason in system_error_reasons for reason in decision.hard_reject_reasons)
 
-        return False
-
-    async def run(self, interval_seconds: int = 10, max_cycles: Optional[int] = None) -> None:
+    async def run(self, interval_seconds: int = 10, max_cycles: int | None = None) -> None:
         """
         Run main loop.
 
@@ -429,7 +465,7 @@ class PolySignalPro:
                 cycle_count += 1
 
                 # Run cycle
-                results = await self.run_cycle()
+                await self.run_cycle()
 
                 # Print summary
                 if cycle_count % 5 == 0:  # Every 5 cycles

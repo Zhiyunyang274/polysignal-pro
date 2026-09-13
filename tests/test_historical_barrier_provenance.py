@@ -1,7 +1,7 @@
 import asyncio
 import hashlib
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -36,7 +36,7 @@ ET_RULES = (
     "timezone has a final High price equal to or greater than the title threshold."
 )
 ET_EXPIRY = "2027-01-01T04:59:00Z"
-START = datetime(2026, 8, 4, 12, 0, tzinfo=timezone.utc)
+START = datetime(2026, 8, 4, 12, 0, tzinfo=UTC)
 ENTRY = START + timedelta(minutes=3, seconds=30)
 UTC_RULES = (
     "This market resolves Yes if any Binance 1 minute candle for Bitcoin (BTC/USDT) "

@@ -6,13 +6,12 @@ import pytest
 
 from polysignal.engines.market_microstructure import (
     MarketMicrostructureEngine,
-    MicrostructureResult,
 )
 from tests.fixtures.orderbooks import (
-    create_mock_orderbook,
     create_mispricing_orderbook,
-    create_wide_spread_orderbook,
+    create_mock_orderbook,
     create_thin_depth_orderbook,
+    create_wide_spread_orderbook,
 )
 
 

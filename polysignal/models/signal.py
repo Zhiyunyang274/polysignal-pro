@@ -4,21 +4,19 @@ Signal Models - Trading signals from strategies
 
 
 from datetime import datetime
-from enum import Enum
-from typing import Optional
+from enum import Enum, StrEnum
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from polysignal.utils.time import utc_now
 
-class SignalSide(str, Enum):
+
+class SignalSide(StrEnum):
     """Signal direction"""
     YES = "yes"
     NO = "no"
     BOTH = "both"  # ONLY for YES/NO combined mispricing paper trading
-
-    def __str__(self) -> str:
-        return self.value
 
 
 class SignalStrength(str, Enum):
@@ -40,7 +38,7 @@ class ComponentScores(BaseModel):
 class Signal(BaseModel):
     """Trading signal"""
     signal_id: str = Field(default_factory=lambda: str(uuid4()))
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=utc_now)
 
     # Market information
     market_id: str
@@ -54,7 +52,7 @@ class Signal(BaseModel):
     # Signal content
     side: SignalSide
     price: float = Field(..., ge=0, le=1)
-    target_price: Optional[float] = None
+    target_price: float | None = None
 
     # Scores
     component_scores: ComponentScores = Field(default_factory=ComponentScores)

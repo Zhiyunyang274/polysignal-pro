@@ -16,7 +16,7 @@ import json
 import math
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from statistics import mean, median
 from typing import Any
@@ -459,8 +459,8 @@ def parse_utc_time(value: Any) -> datetime | None:
     if isinstance(value, datetime):
         parsed = value
         if parsed.tzinfo is None:
-            return parsed.replace(tzinfo=timezone.utc)
-        return parsed.astimezone(timezone.utc)
+            return parsed.replace(tzinfo=UTC)
+        return parsed.astimezone(UTC)
     if isinstance(value, bool):
         return None
     raw = str("" if value is None else value).strip()
@@ -479,7 +479,7 @@ def parse_utc_time(value: Any) -> datetime | None:
             return None
         epoch_seconds = numeric / 1000.0 if magnitude >= 100_000_000_000 else numeric
         try:
-            return datetime.fromtimestamp(epoch_seconds, tz=timezone.utc)
+            return datetime.fromtimestamp(epoch_seconds, tz=UTC)
         except (OverflowError, OSError, ValueError):
             return None
 
@@ -488,12 +488,12 @@ def parse_utc_time(value: Any) -> datetime | None:
     except ValueError:
         return None
     if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 def iso_utc(value: datetime) -> str:
-    return value.astimezone(timezone.utc).replace(tzinfo=None).isoformat()
+    return value.astimezone(UTC).replace(tzinfo=None).isoformat()
 
 
 def effective_max_clock_skew_seconds(args: argparse.Namespace) -> float:
@@ -1662,7 +1662,7 @@ def pearson_correlation(xs: list[float], ys: list[float]) -> float | None:
         return None
     x_mean = mean(xs)
     y_mean = mean(ys)
-    numerator = sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, ys))
+    numerator = sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, ys, strict=False))
     x_variance = sum((x - x_mean) ** 2 for x in xs)
     y_variance = sum((y - y_mean) ** 2 for y in ys)
     denominator = math.sqrt(x_variance * y_variance)
@@ -1899,7 +1899,7 @@ def validate(
     evaluation_time = (
         parse_utc_time(args.evaluation_time)
         if args.evaluation_time
-        else (datetime.now(timezone.utc))
+        else (datetime.now(UTC))
     )
     if evaluation_time is None:
         raise ValueError("evaluation_time must be a valid ISO timestamp")
@@ -1944,7 +1944,7 @@ def validate(
     summary = {
         "schema_version": SCHEMA_VERSION,
         "cluster_policy": CLUSTER_POLICY,
-        "generated_at": iso_utc(datetime.now(timezone.utc)),
+        "generated_at": iso_utc(datetime.now(UTC)),
         "mode": "offline_shadow_validation",
         "inputs": {
             "candidate_file": str(candidate_path),
@@ -2027,7 +2027,7 @@ def write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, Any]]) -> 
 
 def write_positions_json(path: Path, positions: list[ValidationPosition]) -> None:
     payload = {
-        "generated_at": iso_utc(datetime.now(timezone.utc)),
+        "generated_at": iso_utc(datetime.now(UTC)),
         "open_positions": [],
         "closed_positions": [
             position.to_shadow_trade_dict() for position in positions if position.status == "closed"

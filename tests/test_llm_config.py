@@ -4,17 +4,15 @@ Tests for LLM Configuration
 IMPORTANT: Tests verify configuration loading and environment variable handling.
 """
 
-import pytest
-from unittest.mock import patch
-import tempfile
 import os
+import tempfile
+from unittest.mock import patch
 
 from polysignal.llm.llm_config import (
-    LLMConfig,
-    LLMProviderType,
     DeepSeekConfig,
     GLMConfig,
-    MockConfig,
+    LLMConfig,
+    LLMProviderType,
     RouterConfig,
     ValidationConfig,
     load_llm_config,

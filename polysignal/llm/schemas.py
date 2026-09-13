@@ -9,7 +9,7 @@ If raw LLM output contains these fields, it should be flagged with
 llm_forbidden_trading_instruction risk flag.
 """
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 

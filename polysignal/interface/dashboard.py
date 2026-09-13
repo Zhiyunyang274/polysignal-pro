@@ -17,11 +17,9 @@ Safety constraints:
 from __future__ import annotations
 
 import json
-import sys
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, cast
 
 import pandas as pd
 import streamlit as st
@@ -64,8 +62,8 @@ class RunSummary:
     """Summary of a single run"""
 
     run_id: str
-    start_time: Optional[str] = None
-    end_time: Optional[str] = None
+    start_time: str | None = None
+    end_time: str | None = None
     status: str = "unknown"
     duration_minutes: float = 0.0
     data_mode: str = "unknown"
@@ -87,7 +85,7 @@ class RunSummary:
     llm_calls: int = 0
     llm_successes: int = 0
     llm_failures: int = 0
-    llm_avg_latency_seconds: Optional[float] = None
+    llm_avg_latency_seconds: float | None = None
     api_errors: int = 0
     websocket_messages: int = 0
     websocket_reconnects: int = 0
@@ -97,18 +95,18 @@ class RunSummary:
     llm_sampling_calls_attempted: int = 0
     llm_sampling_calls_succeeded: int = 0
     llm_sampling_calls_failed: int = 0
-    llm_sampling_avg_latency_seconds: Optional[float] = None
-    llm_sampling_p95_latency_seconds: Optional[float] = None
+    llm_sampling_avg_latency_seconds: float | None = None
+    llm_sampling_p95_latency_seconds: float | None = None
     llm_sampling_timeout_count: int = 0
     llm_sampling_invalid_json_count: int = 0
     llm_sampling_schema_error_count: int = 0
     sampled_markets_count: int = 0
     # Combined ask distribution
-    combined_ask_min: Optional[float] = None
-    combined_ask_max: Optional[float] = None
-    combined_ask_median: Optional[float] = None
-    combined_ask_p5: Optional[float] = None
-    combined_ask_p95: Optional[float] = None
+    combined_ask_min: float | None = None
+    combined_ask_max: float | None = None
+    combined_ask_median: float | None = None
+    combined_ask_p5: float | None = None
+    combined_ask_p95: float | None = None
     combined_ask_observation_count: int = 0
     # API error distribution
     api_error_llm_provider: int = 0
@@ -122,7 +120,7 @@ class RunSummary:
     raw_data: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_json(cls, data: dict[str, Any]) -> "RunSummary":
+    def from_json(cls, data: dict[str, Any]) -> RunSummary:
         """Create RunSummary from JSON data"""
         combined_ask = data.get("combined_ask_distribution", {}) or {}
         api_errors = data.get("api_error_type_distribution", {}) or {}
@@ -189,7 +187,7 @@ class IntelligenceSummary:
     """Intelligence analysis summary"""
 
     run_id: str = "unknown"
-    analysis_timestamp: Optional[str] = None
+    analysis_timestamp: str | None = None
     total_markets_analyzed: int = 0
     near_miss_tier_distribution: dict[str, int] = field(default_factory=dict)
     category_distribution: dict[str, int] = field(default_factory=dict)
@@ -200,17 +198,17 @@ class IntelligenceSummary:
     top_research_markets: list[dict[str, Any]] = field(default_factory=list)
     top_avoid_markets: list[dict[str, Any]] = field(default_factory=list)
     top_monitor_markets: list[dict[str, Any]] = field(default_factory=list)
-    llm_avg_event_score: Optional[float] = None
-    llm_avg_confidence: Optional[float] = None
-    llm_avg_latency: Optional[float] = None
-    event_score_vs_combined_ask_correlation: Optional[float] = None
+    llm_avg_event_score: float | None = None
+    llm_avg_confidence: float | None = None
+    llm_avg_latency: float | None = None
+    event_score_vs_combined_ask_correlation: float | None = None
     correlation_sample_size: int = 0
     live_trading_enabled: bool = False
     allow_auto_execution: bool = False
     raw_data: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_json(cls, data: dict[str, Any]) -> "IntelligenceSummary":
+    def from_json(cls, data: dict[str, Any]) -> IntelligenceSummary:
         """Create IntelligenceSummary from JSON data"""
         return cls(
             run_id=data.get("run_id", "unknown"),
@@ -257,7 +255,7 @@ class ComparisonSummary:
     raw_data: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_json(cls, data: dict[str, Any]) -> "ComparisonSummary":
+    def from_json(cls, data: dict[str, Any]) -> ComparisonSummary:
         """Create ComparisonSummary from JSON data"""
         run_selection = data.get("run_selection", {}) or {}
         summary_stats = data.get("summary_statistics", {}) or {}
@@ -290,7 +288,7 @@ class SafetyStatus:
     llm_provider: str = "mock"
 
     @classmethod
-    def from_config(cls, config_dir: Path) -> "SafetyStatus":
+    def from_config(cls, config_dir: Path) -> SafetyStatus:
         """Load safety status from config files"""
         safety = cls()
 
@@ -300,7 +298,7 @@ class SafetyStatus:
             try:
                 import yaml
 
-                with open(risk_yaml, "r") as f:
+                with open(risk_yaml, "r") as f:  # noqa: UP015 (read-only gate, see test_dashboard)
                     risk_config = yaml.safe_load(f) or {}
                 safety.live_trading_enabled = risk_config.get("live_trading_enabled", False)
                 safety.allow_auto_execution = risk_config.get("allow_auto_execution", False)
@@ -314,7 +312,7 @@ class SafetyStatus:
             try:
                 import yaml
 
-                with open(llm_yaml, "r") as f:
+                with open(llm_yaml, "r") as f:  # noqa: UP015 (read-only gate, see test_dashboard)
                     llm_config = yaml.safe_load(f) or {}
                 safety.llm_provider = llm_config.get("provider", "mock")
             except Exception:
@@ -341,8 +339,8 @@ class DashboardDataLoader:
     def __init__(self, runs_dir: Path = DEFAULT_RUNS_DIR, config_dir: Path = DEFAULT_CONFIG_DIR):
         self.runs_dir = runs_dir
         self.config_dir = config_dir
-        self._runs_cache: Optional[dict[str, RunSummary]] = None
-        self._comparison_cache: Optional[ComparisonSummary] = None
+        self._runs_cache: dict[str, RunSummary] | None = None
+        self._comparison_cache: ComparisonSummary | None = None
 
     def discover_runs(self) -> list[str]:
         """Discover all run directories"""
@@ -361,14 +359,14 @@ class DashboardDataLoader:
         run_ids.sort(reverse=True)
         return run_ids
 
-    def load_run_summary(self, run_id: str) -> Optional[RunSummary]:
+    def load_run_summary(self, run_id: str) -> RunSummary | None:
         """Load summary for a specific run"""
         summary_file = self.runs_dir / run_id / "summary.json"
         if not summary_file.exists():
             return None
 
         try:
-            with open(summary_file, "r") as f:
+            with open(summary_file) as f:
                 data = json.load(f)
             return RunSummary.from_json(data)
         except Exception as e:
@@ -389,20 +387,20 @@ class DashboardDataLoader:
         self._runs_cache = runs
         return runs
 
-    def load_intelligence_summary(self, run_id: str) -> Optional[IntelligenceSummary]:
+    def load_intelligence_summary(self, run_id: str) -> IntelligenceSummary | None:
         """Load intelligence summary for a specific run"""
         intel_file = self.runs_dir / run_id / "intelligence_summary.json"
         if not intel_file.exists():
             return None
 
         try:
-            with open(intel_file, "r") as f:
+            with open(intel_file) as f:
                 data = json.load(f)
             return IntelligenceSummary.from_json(data)
         except Exception:
             return None
 
-    def load_comparison_summary(self) -> Optional[ComparisonSummary]:
+    def load_comparison_summary(self) -> ComparisonSummary | None:
         """Load multi-run comparison summary"""
         if self._comparison_cache is not None:
             return self._comparison_cache
@@ -412,21 +410,21 @@ class DashboardDataLoader:
             return None
 
         try:
-            with open(comparison_file, "r") as f:
+            with open(comparison_file) as f:
                 data = json.load(f)
             self._comparison_cache = ComparisonSummary.from_json(data)
             return self._comparison_cache
         except Exception:
             return None
 
-    def load_intelligence_report(self, run_id: str) -> Optional[str]:
+    def load_intelligence_report(self, run_id: str) -> str | None:
         """Load intelligence report markdown for a specific run"""
         report_file = self.runs_dir / run_id / "intelligence_report.md"
         if not report_file.exists():
             return None
 
         try:
-            with open(report_file, "r") as f:
+            with open(report_file) as f:
                 return f.read()
         except Exception:
             return None
@@ -471,8 +469,8 @@ class DashboardDataLoader:
             return {}
 
         try:
-            with open(trajectories_file, "r") as f:
-                return json.load(f)
+            with open(trajectories_file) as f:
+                return cast(dict[str, Any], json.load(f))
         except Exception:
             return {}
 

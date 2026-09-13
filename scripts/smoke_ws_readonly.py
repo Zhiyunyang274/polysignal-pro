@@ -23,17 +23,15 @@ Environment:
 import asyncio
 import sys
 from datetime import datetime
-from typing import Optional
 
 # Add project root to path
 sys.path.insert(0, ".")
 
 from polysignal.config import config
-from polysignal.logging_config import setup_logging, get_logger
-from polysignal.ingestion.websocket_client import CLOBWebSocketClient, WebSocketConfig
-from polysignal.ingestion.gamma_client import GammaAPIClient
 from polysignal.ingestion.data_converter import DataConverter
-
+from polysignal.ingestion.gamma_client import GammaAPIClient
+from polysignal.ingestion.websocket_client import CLOBWebSocketClient, WebSocketConfig
+from polysignal.logging_config import get_logger, setup_logging
 
 logger = get_logger("polysignal.smoke_ws_readonly")
 
@@ -169,7 +167,7 @@ async def run_smoke_test(
 
         # Flatten token IDs
         token_ids = []
-        for market_id, yes_token, no_token in token_pairs:
+        for _market_id, yes_token, no_token in token_pairs:
             token_ids.extend([yes_token, no_token])
 
         print(f"  Found {len(token_ids)} tokens from {len(token_pairs)} markets")

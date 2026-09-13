@@ -6,9 +6,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
+
+from polysignal.utils.time import utc_now
 
 
 class LifecyclePhase(str, Enum):
@@ -45,7 +46,7 @@ class LifecycleAssessment(BaseModel):
 
     # Phase
     phase: LifecyclePhase
-    time_remaining_pct: Optional[float] = Field(None, ge=0, le=1)
+    time_remaining_pct: float | None = Field(None, ge=0, le=1)
 
     # Score (0-100)
     lifecycle_score: float = Field(..., ge=0, le=100)
@@ -71,7 +72,7 @@ class LifecycleAssessment(BaseModel):
     explanation: str = ""
 
     # Metadata
-    assessed_at: datetime = Field(default_factory=datetime.utcnow)
+    assessed_at: datetime = Field(default_factory=utc_now)
 
     def get_summary(self) -> str:
         """Get assessment summary"""

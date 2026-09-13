@@ -12,21 +12,17 @@ IMPORTANT:
 
 import os
 from datetime import datetime
-from typing import Any, Optional
-from uuid import uuid4
+from typing import Any
 
 import structlog
 
-from polysignal.models.signal import Signal
-from polysignal.models.risk import RiskDecision, RiskAction
 from polysignal.models.paper_trade import PaperOrder
+from polysignal.models.risk import RiskAction, RiskDecision
+from polysignal.models.signal import Signal
 from polysignal.models.telegram import (
-    TelegramAction,
-    TelegramActionResult,
     SystemPauseState,
-    TelegramAlertMessage,
+    TelegramAction,
 )
-
 
 logger = structlog.get_logger()
 
@@ -76,8 +72,8 @@ class TelegramClient:
         self._application = None
 
         # Pause states
-        self._alerts_paused = False
-        self._signals_paused = False
+        self._alerts_paused: bool = False
+        self._signals_paused: bool = False
 
         if self.enabled:
             logger.info("Telegram client initialized", enabled=True)
@@ -179,7 +175,7 @@ class TelegramClient:
         self,
         signal: Signal,
         decision: RiskDecision,
-        paper_order: Optional[PaperOrder] = None,
+        paper_order: PaperOrder | None = None,
     ) -> bool:
         """
         Send alert to Telegram.
@@ -229,7 +225,7 @@ class TelegramClient:
         self,
         signal: Signal,
         decision: RiskDecision,
-        paper_order: Optional[PaperOrder],
+        paper_order: PaperOrder | None,
     ) -> bool:
         """Send paper trade execution notification"""
         return await self.send_alert(signal, decision, paper_order)
@@ -258,7 +254,7 @@ class TelegramClient:
         self,
         signal: Signal,
         decision: RiskDecision,
-        paper_order: Optional[PaperOrder] = None,
+        paper_order: PaperOrder | None = None,
     ) -> str:
         """Build Telegram alert message"""
         lines = []

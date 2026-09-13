@@ -17,20 +17,18 @@ Correct logic:
 
 import os
 import sys
-from datetime import datetime
-from unittest.mock import MagicMock
 
 import pytest
+from pydantic import ValidationError
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from polysignal.models.orderbook import (
-    PriceLevel,
     OrderBookSide,
     OrderBookSnapshot,
+    PriceLevel,
 )
-
 
 # =============================================================================
 # Test PriceLevel
@@ -49,10 +47,10 @@ class TestPriceLevel:
     def test_price_level_validation(self):
         """Test price level validation"""
         # Price must be 0-1
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             PriceLevel(price=1.5, size=100.0, total_usd=150.0)
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             PriceLevel(price=-0.1, size=100.0, total_usd=-10.0)
 
 

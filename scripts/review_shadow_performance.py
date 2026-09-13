@@ -15,10 +15,9 @@ from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 from statistics import mean
-from typing import Any, Optional
+from typing import Any
 
 import yaml
-
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -58,7 +57,7 @@ DIAGNOSTIC_FIELDS = [
 ]
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Review closed shadow trade performance")
     parser.add_argument("--shadow_dir", type=str, default="runs/shadow")
     parser.add_argument("--runs_dir", type=str, default="runs")
@@ -78,7 +77,7 @@ def safe_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
-def optional_float(value: Any) -> Optional[float]:
+def optional_float(value: Any) -> float | None:
     if value in (None, ""):
         return None
     try:
@@ -90,7 +89,7 @@ def optional_float(value: Any) -> Optional[float]:
 def load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    with open(path, "r") as f:
+    with open(path) as f:
         data = yaml.safe_load(f) or {}
     return data if isinstance(data, dict) else {}
 
@@ -634,7 +633,7 @@ def print_dry_run(summary: dict[str, Any], paths: dict[str, str]) -> None:
     print(f"tiny_live_recommendation: {summary['tiny_live_recommendation']}")
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     summary, diagnostics, paths = build_review(args)
     if args.dry_run:

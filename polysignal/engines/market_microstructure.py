@@ -11,10 +11,9 @@ Responsibilities:
 """
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from polysignal.models.orderbook import OrderBookSnapshot, OrderBookUpdate
-from polysignal.models.market import Market
 from polysignal.models.signal import ComponentScores
 
 
@@ -26,7 +25,7 @@ class MicrostructureResult:
         spread_pct: float = 0.0,
         total_depth_usd: float = 0.0,
         imbalance_ratio: float = 0.5,
-        combined_ask: Optional[float] = None,
+        combined_ask: float | None = None,
         is_mispriced: bool = False,
         microstructure_score: float = 0.0,
         liquidity_score: float = 0.0,
@@ -113,10 +112,7 @@ class MarketMicrostructureEngine:
         yes_ask_depth = snapshot.yes_asks.total_depth_usd
         total_yes_depth = yes_bid_depth + yes_ask_depth
 
-        if total_yes_depth > 0:
-            imbalance_ratio = yes_bid_depth / total_yes_depth
-        else:
-            imbalance_ratio = 0.5
+        imbalance_ratio = yes_bid_depth / total_yes_depth if total_yes_depth > 0 else 0.5
 
         # Get combined ask
         combined_ask = snapshot.combined_ask

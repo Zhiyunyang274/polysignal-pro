@@ -13,11 +13,11 @@ IMPORTANT:
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any
 
 from polysignal.logging_config import get_logger
-
 
 logger = get_logger("polysignal.ingestion.subscription_manager")
 
@@ -61,7 +61,7 @@ class SubscriptionManager:
 
     async def subscribe_batch(
         self,
-        send_subscribe: callable,
+        send_subscribe: Callable[[list[str]], Awaitable[Any]],
         token_ids: list[str],
     ) -> tuple[int, int]:
         """

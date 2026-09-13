@@ -19,31 +19,27 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
 
 import pytest
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import contextlib
+
+from polysignal.models.market import Market, MarketStatus
 from scripts.run_paper import (
-    WatchlistLoader,
-    WatchlistEntry,
     AlphaCandidate,
-    AvoidCandidate,
-    MarketTrajectory,
-    TrajectoryObservation,
-    MarketPrioritizer,
     AvoidAnnotator,
-    TrajectoryTracker,
-    WatchlistMonitoringStats,
+    MarketPrioritizer,
     PaperTradingRunner,
     RunConfig,
     RunStatistics,
+    TrajectoryTracker,
+    WatchlistEntry,
+    WatchlistLoader,
+    WatchlistMonitoringStats,
 )
-
-from polysignal.models.market import Market, MarketStatus
-
 
 # =============================================================================
 # Test Fixtures
@@ -470,11 +466,11 @@ class TestAvoidAnnotator:
         annotation = annotator.annotate("99999")
 
         assert annotation is not None
-        assert annotation["is_avoid_candidate"] == True
+        assert annotation["is_avoid_candidate"]
         assert annotation["avoid_score"] == 75.0
         # category_risk is inferred from reasons (high_ambiguity -> high)
         assert annotation["category_risk"] == "high"
-        assert annotation["is_hard_forbidden"] == False  # NOT hard forbidden
+        assert not annotation["is_hard_forbidden"]  # NOT hard forbidden
 
     def test_annotate_non_avoid_market(self, temp_avoid_csv: Path):
         """Test annotating non-avoid market"""
@@ -497,7 +493,7 @@ class TestAvoidAnnotator:
         annotation = annotator.annotate("99999")
 
         # Critical test: avoid is NOT hard forbidden
-        assert annotation["is_hard_forbidden"] == False
+        assert not annotation["is_hard_forbidden"]
         assert annotation["annotation_type"] == "research_only"
 
 
@@ -610,7 +606,7 @@ class TestBackwardCompatibility:
         assert config.avoid_candidates_file is None
         assert config.watchlist_priority_ratio == 0.6
         assert config.discovery_ratio == 0.2
-        assert config.track_trajectory == True
+        assert config.track_trajectory
         assert config.alpha_priority_ratio == 0.0
         assert config.alpha_repeat_target == 3
 
@@ -632,7 +628,7 @@ class TestSafetyVerification:
         annotation = annotator.annotate("99999")
 
         # Critical: avoid annotation should NOT block
-        assert annotation["is_hard_forbidden"] == False
+        assert not annotation["is_hard_forbidden"]
         assert annotation["annotation_type"] == "research_only"
 
     def test_avoid_annotation_no_hard_reject(self, temp_avoid_csv: Path):
@@ -645,7 +641,7 @@ class TestSafetyVerification:
         annotation = annotator.annotate("99999")
 
         # No hard_reject field should be True
-        assert annotation.get("is_hard_forbidden") == False
+        assert not annotation.get("is_hard_forbidden")
 
     def test_watchlist_does_not_trigger_trade(self):
         """Test that watchlist does NOT trigger trading"""
@@ -777,7 +773,7 @@ class TestIntegration:
             if annotation:
                 avoid_count += 1
                 # Verify annotation is research only
-                assert annotation["is_hard_forbidden"] == False
+                assert not annotation["is_hard_forbidden"]
 
         # Track trajectories
         tracker = TrajectoryTracker(trajectories=loader.trajectories, track_enabled=True)
@@ -882,7 +878,5 @@ def cleanup_temp_files(
     yield
     # Cleanup
     for path in [temp_watchlist_csv, temp_alpha_csv, temp_avoid_csv, temp_trajectories_json]:
-        try:
+        with contextlib.suppress(Exception):
             path.unlink()
-        except Exception:
-            pass

@@ -14,11 +14,10 @@ IMPORTANT: This client is READ-ONLY. It does not support:
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Optional
+from typing import Any, cast
 
 import httpx
 
-from polysignal.ingestion.api_types import GammaMarket
 from polysignal.ingestion.api_errors import (
     APIConnectionError,
     APIInvalidResponse,
@@ -28,8 +27,8 @@ from polysignal.ingestion.api_errors import (
     APITimeout,
     GammaAPIError,
 )
+from polysignal.ingestion.api_types import GammaMarket
 from polysignal.logging_config import get_logger
-
 
 logger = get_logger("polysignal.ingestion.gamma_client")
 
@@ -48,7 +47,7 @@ class GammaAPIClient:
 
     def __init__(
         self,
-        base_url: Optional[str] = None,
+        base_url: str | None = None,
         timeout_seconds: float = 10.0,
         max_retries: int = 3,
     ):
@@ -63,7 +62,7 @@ class GammaAPIClient:
         self.base_url = base_url or self.BASE_URL
         self.timeout_seconds = timeout_seconds
         self.max_retries = max_retries
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client"""
@@ -84,7 +83,7 @@ class GammaAPIClient:
         self,
         method: str,
         endpoint: str,
-        params: Optional[dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Make HTTP request with retry logic.
@@ -101,14 +100,14 @@ class GammaAPIClient:
             GammaAPIError: On API failure after retries
         """
         client = await self._get_client()
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
 
         for attempt in range(self.max_retries):
             try:
                 response = await client.request(method, endpoint, params=params)
 
                 if response.status_code == 200:
-                    return response.json()
+                    return cast(dict[str, Any], response.json())
 
                 if response.status_code == 404:
                     raise APINotFound(f"Resource not found: {endpoint}")
@@ -128,7 +127,7 @@ class GammaAPIClient:
 
                 raise GammaAPIError(f"Unexpected status code: {response.status_code}")
 
-            except httpx.TimeoutException as e:
+            except httpx.TimeoutException:
                 last_error = APITimeout(f"Request timeout: {endpoint}")
                 logger.warning(
                     "Gamma API timeout",
@@ -137,7 +136,7 @@ class GammaAPIClient:
                     max_retries=self.max_retries,
                 )
 
-            except httpx.ConnectError as e:
+            except httpx.ConnectError:
                 last_error = APIConnectionError(f"Connection error: {endpoint}")
                 logger.warning(
                     "Gamma API connection error",
@@ -167,7 +166,7 @@ class GammaAPIClient:
         limit: int = 100,
         offset: int = 0,
         active_only: bool = True,
-        category: Optional[str] = None,
+        category: str | None = None,
     ) -> list[GammaMarket]:
         """
         Get markets from Gamma API.
@@ -222,9 +221,9 @@ class GammaAPIClient:
         except GammaAPIError:
             raise
         except Exception as e:
-            raise GammaAPIError(f"Failed to get markets: {e}")
+            raise GammaAPIError(f"Failed to get markets: {e}") from e
 
-    async def get_market(self, market_id: str) -> Optional[GammaMarket]:
+    async def get_market(self, market_id: str) -> GammaMarket | None:
         """
         Get a single market by ID.
 
@@ -246,9 +245,9 @@ class GammaAPIClient:
                 market_id=market_id,
                 error=str(e),
             )
-            raise GammaAPIError(f"Failed to get market {market_id}: {e}")
+            raise GammaAPIError(f"Failed to get market {market_id}: {e}") from e
 
-    async def get_market_by_slug(self, slug: str) -> Optional[GammaMarket]:
+    async def get_market_by_slug(self, slug: str) -> GammaMarket | None:
         """
         Get a market by slug.
 
@@ -276,7 +275,7 @@ class GammaAPIClient:
                 slug=slug,
                 error=str(e),
             )
-            raise GammaAPIError(f"Failed to get market by slug {slug}: {e}")
+            raise GammaAPIError(f"Failed to get market by slug {slug}: {e}") from e
 
     def get_status(self) -> dict[str, Any]:
         """Get client status"""

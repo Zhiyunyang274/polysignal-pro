@@ -21,7 +21,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 import httpx
 from pydantic import BaseModel, ValidationError
@@ -100,7 +100,7 @@ class GLMProvider(LLMProvider):
     - LLM CANNOT directly trigger trading execution
     """
 
-    def __init__(self, config: Optional[GLMConfig] = None):
+    def __init__(self, config: GLMConfig | None = None):
         """
         Initialize GLM/Z.AI provider.
 
@@ -130,8 +130,8 @@ class GLMProvider(LLMProvider):
         self,
         prompt: str,
         response_schema: type[T],
-        timeout_seconds: Optional[float] = None,
-        max_retries: Optional[int] = None,
+        timeout_seconds: float | None = None,
+        max_retries: int | None = None,
     ) -> LLMResponse:
         """
         Analyze prompt using GLM/Z.AI API.
@@ -158,7 +158,7 @@ class GLMProvider(LLMProvider):
         timeout = timeout_seconds or self.config.timeout_seconds
         retries = max_retries if max_retries is not None else self.config.max_retries
 
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
 
         for attempt in range(retries + 1):
             try:
@@ -292,17 +292,17 @@ class GLMProvider(LLMProvider):
                 # Parse and validate JSON
                 return self._parse_response(content, response_schema, latency)
 
-        except httpx.TimeoutException:
+        except httpx.TimeoutException as e:
             raise LLMTimeout(
                 message=f"GLM/Z.AI API request timed out after {timeout_seconds}s",
                 provider="glm",
-            )
+            ) from e
 
         except httpx.ConnectError as e:
             raise LLMConnectionError(
                 message=f"Failed to connect to GLM/Z.AI API: {e}",
                 provider="glm",
-            )
+            ) from e
 
     def _build_system_prompt(self, response_schema: type[T]) -> str:
         """
@@ -363,7 +363,7 @@ class GLMProvider(LLMProvider):
                 message=f"Invalid JSON from GLM/Z.AI: {e}",
                 provider="glm",
                 raw_output=content,
-            )
+            ) from e
 
         # Check for forbidden trading fields (JSON keys only)
         has_forbidden, forbidden_fields = check_forbidden_trading_fields_in_keys(data)
@@ -382,7 +382,7 @@ class GLMProvider(LLMProvider):
                 message=f"Schema validation failed: {e}",
                 provider="glm",
                 raw_output=content,
-            )
+            ) from e
 
         # Get confidence from parsed output
         confidence = getattr(parsed, "confidence", 0.8)

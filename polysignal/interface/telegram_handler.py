@@ -13,19 +13,18 @@ This handler processes Telegram button actions for:
 IMPORTANT: This handler cannot trigger trading actions.
 """
 
-from datetime import datetime
-from typing import Optional
+from collections.abc import Awaitable, Callable
+from typing import cast
 from uuid import uuid4
 
 import structlog
 
+from polysignal.interface.telegram_client import TelegramClient
 from polysignal.models.telegram import (
     TelegramAction,
     TelegramActionResult,
 )
-from polysignal.interface.telegram_client import TelegramClient
 from polysignal.storage.database import Database
-
 
 logger = structlog.get_logger()
 
@@ -61,11 +60,11 @@ class TelegramActionHandler:
         self,
         action: str,
         user_id: int,
-        username: Optional[str] = None,
-        signal_id: Optional[str] = None,
-        market_id: Optional[str] = None,
-        strategy_name: Optional[str] = None,
-        wallet_address: Optional[str] = None,
+        username: str | None = None,
+        signal_id: str | None = None,
+        market_id: str | None = None,
+        strategy_name: str | None = None,
+        wallet_address: str | None = None,
     ) -> tuple[TelegramActionResult, str]:
         """
         Handle a Telegram action.
@@ -102,7 +101,10 @@ class TelegramActionHandler:
             TelegramAction.VIEW_JOURNAL: self._handle_view_journal,
         }
 
-        handler = handler_map.get(telegram_action)
+        handler = cast(
+            "Callable[..., Awaitable[tuple[TelegramActionResult, str]]] | None",
+            handler_map.get(telegram_action),
+        )
         if not handler:
             return TelegramActionResult.FAILED, f"No handler for action '{action}'"
 
@@ -122,8 +124,8 @@ class TelegramActionHandler:
     async def _handle_details(
         self,
         user_id: int,
-        username: Optional[str],
-        signal_id: Optional[str],
+        username: str | None,
+        signal_id: str | None,
         **kwargs,
     ) -> tuple[TelegramActionResult, str]:
         """Handle Details action"""
@@ -148,7 +150,7 @@ class TelegramActionHandler:
 
         # Build details message
         lines = [
-            f"📋 <b>Signal Details</b>",
+            "📋 <b>Signal Details</b>",
             "",
             f"<b>Signal ID:</b> <code>{signal_id}</code>",
             f"<b>Market:</b> {signal.market_title}",
@@ -184,9 +186,9 @@ class TelegramActionHandler:
     async def _handle_ignore_future(
         self,
         user_id: int,
-        username: Optional[str],
-        market_id: Optional[str],
-        strategy_name: Optional[str],
+        username: str | None,
+        market_id: str | None,
+        strategy_name: str | None,
         **kwargs,
     ) -> tuple[TelegramActionResult, str]:
         """Handle Ignore Future action"""
@@ -223,8 +225,8 @@ class TelegramActionHandler:
     async def _handle_blacklist(
         self,
         user_id: int,
-        username: Optional[str],
-        market_id: Optional[str],
+        username: str | None,
+        market_id: str | None,
         **kwargs,
     ) -> tuple[TelegramActionResult, str]:
         """Handle Blacklist Market action"""
@@ -261,8 +263,8 @@ class TelegramActionHandler:
     async def _handle_track_wallet(
         self,
         user_id: int,
-        username: Optional[str],
-        wallet_address: Optional[str],
+        username: str | None,
+        wallet_address: str | None,
         **kwargs,
     ) -> tuple[TelegramActionResult, str]:
         """Handle Track Wallet action"""
@@ -297,7 +299,7 @@ class TelegramActionHandler:
     async def _handle_pause_alerts(
         self,
         user_id: int,
-        username: Optional[str],
+        username: str | None,
         **kwargs,
     ) -> tuple[TelegramActionResult, str]:
         """Handle Pause Alerts action"""
@@ -317,7 +319,7 @@ class TelegramActionHandler:
     async def _handle_resume_alerts(
         self,
         user_id: int,
-        username: Optional[str],
+        username: str | None,
         **kwargs,
     ) -> tuple[TelegramActionResult, str]:
         """Handle Resume Alerts action"""
@@ -337,7 +339,7 @@ class TelegramActionHandler:
     async def _handle_pause_signals(
         self,
         user_id: int,
-        username: Optional[str],
+        username: str | None,
         **kwargs,
     ) -> tuple[TelegramActionResult, str]:
         """Handle Pause Signals action"""
@@ -357,7 +359,7 @@ class TelegramActionHandler:
     async def _handle_resume_signals(
         self,
         user_id: int,
-        username: Optional[str],
+        username: str | None,
         **kwargs,
     ) -> tuple[TelegramActionResult, str]:
         """Handle Resume Signals action"""
@@ -377,8 +379,8 @@ class TelegramActionHandler:
     async def _handle_mark_reviewed(
         self,
         user_id: int,
-        username: Optional[str],
-        signal_id: Optional[str],
+        username: str | None,
+        signal_id: str | None,
         **kwargs,
     ) -> tuple[TelegramActionResult, str]:
         """Handle Mark Reviewed action"""
@@ -412,8 +414,8 @@ class TelegramActionHandler:
     async def _handle_view_journal(
         self,
         user_id: int,
-        username: Optional[str],
-        market_id: Optional[str],
+        username: str | None,
+        market_id: str | None,
         **kwargs,
     ) -> tuple[TelegramActionResult, str]:
         """Handle View Journal action"""
@@ -452,13 +454,13 @@ class TelegramActionHandler:
         self,
         action: TelegramAction,
         user_id: int,
-        username: Optional[str],
+        username: str | None,
         result: TelegramActionResult,
         result_message: str,
-        signal_id: Optional[str] = None,
-        market_id: Optional[str] = None,
-        strategy_name: Optional[str] = None,
-        wallet_address: Optional[str] = None,
+        signal_id: str | None = None,
+        market_id: str | None = None,
+        strategy_name: str | None = None,
+        wallet_address: str | None = None,
     ) -> None:
         """Log Telegram action to database"""
         action_id = str(uuid4())

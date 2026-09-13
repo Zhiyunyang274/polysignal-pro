@@ -2,6 +2,9 @@
 Engines Package - Intelligence engines
 """
 
+from polysignal.engines.event_intelligence import (
+    EventIntelligenceEngine,
+)
 from polysignal.engines.market_microstructure import (
     MarketMicrostructureEngine,
     MicrostructureResult,
@@ -11,9 +14,6 @@ from polysignal.engines.resolution_lifecycle import (
 )
 from polysignal.engines.wallet_intelligence import (
     WalletIntelligenceEngine,
-)
-from polysignal.engines.event_intelligence import (
-    EventIntelligenceEngine,
 )
 
 __all__ = [

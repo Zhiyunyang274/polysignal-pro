@@ -6,7 +6,7 @@ import hashlib
 import json
 from collections import Counter
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
@@ -120,7 +120,7 @@ def bytes_sha256(content: bytes) -> str:
 def _utc_iso(value: datetime) -> str:
     if value.tzinfo is None:
         raise ValueError("snapshot timestamps must be timezone-aware")
-    return value.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return value.astimezone(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def _query_params(query: Mapping[str, JsonScalar]) -> tuple[GammaQueryParam, ...]:

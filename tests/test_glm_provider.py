@@ -5,15 +5,12 @@ IMPORTANT: All tests use mock HTTP transport.
 Tests do NOT depend on real GLM/Z.AI API.
 """
 
-import json
-import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import patch
 
-import httpx
+import pytest
 
 from polysignal.llm.glm_provider import (
     GLMProvider,
-    check_forbidden_trading_fields_in_keys,
 )
 from polysignal.llm.llm_config import GLMConfig
 from polysignal.llm.llm_errors import (
@@ -21,10 +18,10 @@ from polysignal.llm.llm_errors import (
     LLMConnectionError,
     LLMForbiddenFieldsError,
     LLMInvalidJSON,
+    LLMProviderNotConfigured,
     LLMRateLimit,
     LLMSchemaError,
     LLMTimeout,
-    LLMProviderNotConfigured,
 )
 from polysignal.llm.schemas import EventAnalysisSchema, MarketRuleSchema
 from polysignal.models.event import LLMResponse

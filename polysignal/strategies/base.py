@@ -4,12 +4,12 @@ Strategy Base - Base class for all trading strategies
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
 from datetime import datetime
+from typing import Any
 
-from polysignal.models.signal import Signal, ComponentScores
-from polysignal.models.orderbook import OrderBookSnapshot
 from polysignal.models.market import Market
+from polysignal.models.orderbook import OrderBookSnapshot
+from polysignal.models.signal import ComponentScores, Signal
 
 
 class StrategyContext:
@@ -17,10 +17,10 @@ class StrategyContext:
 
     def __init__(
         self,
-        market: Optional[Market] = None,
-        orderbook: Optional[OrderBookSnapshot] = None,
-        component_scores: Optional[ComponentScores] = None,
-        metadata: Optional[dict[str, Any]] = None,
+        market: Market | None = None,
+        orderbook: OrderBookSnapshot | None = None,
+        component_scores: ComponentScores | None = None,
+        metadata: dict[str, Any] | None = None,
     ):
         self.market = market
         self.orderbook = orderbook
@@ -60,7 +60,7 @@ class Strategy(ABC):
         return []
 
     @abstractmethod
-    def compute_signal(self, context: StrategyContext) -> Optional[Signal]:
+    def compute_signal(self, context: StrategyContext) -> Signal | None:
         """
         Compute a trading signal.
 

@@ -23,10 +23,9 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
-
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_RUNS_DIR = REPO_ROOT / "runs"
@@ -45,10 +44,10 @@ class StepResult:
     name: str
     command: list[str]
     success: bool = False
-    returncode: Optional[int] = None
+    returncode: int | None = None
     stdout: str = ""
     stderr: str = ""
-    error: Optional[str] = None
+    error: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -67,9 +66,9 @@ class LoopState:
     """State accumulated during a validation loop run."""
 
     started_at: datetime = field(default_factory=datetime.utcnow)
-    ended_at: Optional[datetime] = None
+    ended_at: datetime | None = None
     run_command: list[str] = field(default_factory=list)
-    run_id: Optional[str] = None
+    run_id: str | None = None
     run_success: bool = False
     validation_success: bool = False
     intelligence_success: bool = False
@@ -103,7 +102,7 @@ def parse_bool(value: str) -> bool:
     return value.lower() in ("true", "1", "yes", "y", "on")
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Phase 7B — run one read-only validation loop and reports",
     )
@@ -147,7 +146,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 def load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    with open(path, "r") as f:
+    with open(path) as f:
         data = yaml.safe_load(f) or {}
     return data if isinstance(data, dict) else {}
 
@@ -258,7 +257,7 @@ def build_comparison_command(output_dir: Path) -> list[str]:
     ]
 
 
-def find_latest_run(runs_dir: Path) -> Optional[Path]:
+def find_latest_run(runs_dir: Path) -> Path | None:
     if not runs_dir.exists():
         return None
     run_dirs = [
@@ -271,7 +270,7 @@ def find_latest_run(runs_dir: Path) -> Optional[Path]:
     return run_dirs[0]
 
 
-def collect_generated_files(output_dir: Path, run_dir: Optional[Path]) -> list[str]:
+def collect_generated_files(output_dir: Path, run_dir: Path | None) -> list[str]:
     candidates = [
         output_dir / "strategy_validation_report.md",
         output_dir / "strategy_validation_summary.json",
@@ -375,7 +374,7 @@ def run_validation_loop(args: argparse.Namespace) -> int:
     state.run_command = run_command
 
     latest_before = find_latest_run(output_dir)
-    run_dir: Optional[Path] = None
+    run_dir: Path | None = None
     commands: list[tuple[str, list[str]]] = []
 
     if not args.skip_run:
@@ -468,7 +467,7 @@ def run_validation_loop(args: argparse.Namespace) -> int:
     return 0
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     return run_validation_loop(args)
 

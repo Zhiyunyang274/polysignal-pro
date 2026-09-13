@@ -5,7 +5,7 @@ Configuration Module - Load and validate configuration from YAML and environment
 
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field
@@ -155,7 +155,7 @@ class MockMarketConfig(BaseModel):
     """Mock market configuration"""
     num_markets: int = 10
     price_range: list[float] = Field(default_factory=lambda: [0.1, 0.9])
-    volume_range_usd: list[float] = Field(default_factory=lambda: [100000, 1000000])
+    volume_range_usd: list[float] = Field(default_factory=lambda: [100000.0, 1000000.0])
 
 
 class MarketFilters(BaseModel):
@@ -237,15 +237,15 @@ class EnvSettings(BaseSettings):
     allow_auto_execution: bool = False
     paper_trading_enabled: bool = True
 
-    telegram_bot_token: Optional[str] = None
-    telegram_chat_id: Optional[str] = None
+    telegram_bot_token: str | None = None
+    telegram_chat_id: str | None = None
 
     # LLM API keys
-    deepseek_api_key: Optional[str] = None
-    glm_api_key: Optional[str] = None
-    zai_api_key: Optional[str] = None
-    sensenova_api_key: Optional[str] = None
-    xfyun_api_key: Optional[str] = None
+    deepseek_api_key: str | None = None
+    glm_api_key: str | None = None
+    zai_api_key: str | None = None
+    sensenova_api_key: str | None = None
+    xfyun_api_key: str | None = None
 
     # LLM model overrides
     llm_provider: str = "mock"
@@ -259,7 +259,7 @@ class EnvSettings(BaseSettings):
     log_level: str = "INFO"
     log_file: str = "logs/polysignal.log"
 
-    polymarket_api_key: Optional[str] = None
+    polymarket_api_key: str | None = None
 
     # Data mode: mock, real_readonly, hybrid
     data_mode: str = "mock"
@@ -281,14 +281,14 @@ class Config:
 
     def __init__(self, config_dir: str = "config"):
         self.config_dir = Path(config_dir)
-        self._app: Optional[AppSettings] = None
-        self._risk: Optional[RiskSettings] = None
-        self._markets: Optional[MarketSettings] = None
-        self._wallets: Optional[WalletSettings] = None
-        self._llm: Optional[LLMSettings] = None
-        self._env: Optional[EnvSettings] = None
-        self._telegram: Optional[TelegramConfig] = None
-        self._websocket: Optional[WebSocketConfig] = None
+        self._app: AppSettings | None = None
+        self._risk: RiskSettings | None = None
+        self._markets: MarketSettings | None = None
+        self._wallets: WalletSettings | None = None
+        self._llm: LLMSettings | None = None
+        self._env: EnvSettings | None = None
+        self._telegram: TelegramConfig | None = None
+        self._websocket: WebSocketConfig | None = None
 
     def _load_yaml(self, filename: str) -> dict[str, Any]:
         """Load a YAML file"""

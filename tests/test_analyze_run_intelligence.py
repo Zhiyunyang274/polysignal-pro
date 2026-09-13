@@ -17,10 +17,9 @@ Coverage:
 import json
 import os
 import sys
-import tempfile
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -32,9 +31,8 @@ from scripts.analyze_run_intelligence import (
     IntelligenceSummary,
     ObservedMarket,
     classify_near_miss_tier,
-    infer_market_category,
     find_latest_run,
-    NEAR_MISS_TIERS,
+    infer_market_category,
 )
 
 
@@ -435,7 +433,7 @@ class TestIntelligenceAnalyzer:
         assert csv_path.exists()
 
         # Read and verify CSV
-        with open(csv_path, "r") as f:
+        with open(csv_path) as f:
             content = f.read()
             assert "market_id" in content
             assert "553828" in content
@@ -705,7 +703,7 @@ class TestFindLatestRun:
 
         # Patch the runs directory
         with patch.object(analyzer_module.Path, "__call__", side_effect=lambda x: mock_runs if x == "runs" else original_runs.__class__(x)):
-            result = find_latest_run()
+            find_latest_run()
             # Should return None if no runs
             # Note: This test may not work perfectly due to Path patching complexity
 
@@ -721,7 +719,6 @@ class TestFindLatestRun:
         (runs_dir / "run_20260509_110000_ccc").mkdir()
 
         # Import and test
-        import scripts.analyze_run_intelligence as analyzer_module
 
         # We'll test the sorting logic manually
         run_dirs = sorted([d for d in runs_dir.iterdir() if d.is_dir()], reverse=True)

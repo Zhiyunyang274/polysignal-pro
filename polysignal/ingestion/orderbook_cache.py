@@ -11,17 +11,14 @@ Each market has two tokens: YES token and NO token.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import Optional
+from datetime import datetime
 
 from polysignal.logging_config import get_logger
 from polysignal.models.orderbook import (
     OrderBookSide,
     OrderBookSnapshot,
-    OrderBookUpdate,
     PriceLevel,
 )
-
 
 logger = get_logger("polysignal.ingestion.orderbook_cache")
 
@@ -35,16 +32,16 @@ class TokenOrderBookCache:
     """
 
     token_id: str
-    market_id: Optional[str] = None
-    is_yes_token: Optional[bool] = None
+    market_id: str | None = None
+    is_yes_token: bool | None = None
 
     # Price levels: price -> size
     bids: dict[float, float] = field(default_factory=dict)
     asks: dict[float, float] = field(default_factory=dict)
 
     # Metadata
-    last_update_time: Optional[datetime] = None
-    last_snapshot_time: Optional[datetime] = None
+    last_update_time: datetime | None = None
+    last_snapshot_time: datetime | None = None
     update_count: int = 0
 
     def apply_snapshot(self, bids: list[PriceLevel], asks: list[PriceLevel]) -> None:
@@ -63,8 +60,8 @@ class TokenOrderBookCache:
 
     def apply_update(
         self,
-        bid_updates: Optional[list[tuple[float, float]]] = None,
-        ask_updates: Optional[list[tuple[float, float]]] = None,
+        bid_updates: list[tuple[float, float]] | None = None,
+        ask_updates: list[tuple[float, float]] | None = None,
     ) -> None:
         """
         Apply incremental update.
@@ -164,15 +161,15 @@ class OrderBookCacheManager:
     # token_id -> cache
     _caches: dict[str, TokenOrderBookCache] = field(default_factory=dict)
 
-    def get_cache(self, token_id: str) -> Optional[TokenOrderBookCache]:
+    def get_cache(self, token_id: str) -> TokenOrderBookCache | None:
         """Get cache for a token."""
         return self._caches.get(token_id)
 
     def get_or_create_cache(
         self,
         token_id: str,
-        market_id: Optional[str] = None,
-        is_yes_token: Optional[bool] = None,
+        market_id: str | None = None,
+        is_yes_token: bool | None = None,
     ) -> TokenOrderBookCache:
         """Get or create cache for a token."""
         if token_id not in self._caches:
@@ -188,8 +185,8 @@ class OrderBookCacheManager:
         token_id: str,
         bids: list[PriceLevel],
         asks: list[PriceLevel],
-        market_id: Optional[str] = None,
-        is_yes_token: Optional[bool] = None,
+        market_id: str | None = None,
+        is_yes_token: bool | None = None,
     ) -> None:
         """
         Apply orderbook snapshot to cache.
@@ -213,8 +210,8 @@ class OrderBookCacheManager:
     def apply_update(
         self,
         token_id: str,
-        bid_updates: Optional[list[tuple[float, float]]] = None,
-        ask_updates: Optional[list[tuple[float, float]]] = None,
+        bid_updates: list[tuple[float, float]] | None = None,
+        ask_updates: list[tuple[float, float]] | None = None,
     ) -> None:
         """
         Apply incremental update to cache.
@@ -245,7 +242,7 @@ class OrderBookCacheManager:
         market_id: str,
         yes_token_id: str,
         no_token_id: str,
-    ) -> Optional[OrderBookSnapshot]:
+    ) -> OrderBookSnapshot | None:
         """
         Get combined orderbook for a market.
 

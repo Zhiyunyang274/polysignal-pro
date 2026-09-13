@@ -12,7 +12,6 @@ from polysignal.models.event import (
     SuggestedMode,
 )
 from polysignal.models.market import Market, MarketCategory, MarketStatus
-from polysignal.llm.mock_provider import MockScenario
 
 
 def create_event_market(

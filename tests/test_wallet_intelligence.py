@@ -2,26 +2,24 @@
 Tests for Wallet Intelligence Engine
 """
 
-import pytest
-
 from datetime import datetime, timedelta
 
-from polysignal.models.wallet import WalletSpecialization
-from polysignal.models.market import MarketCategory
+import pytest
+
 from polysignal.engines.wallet_intelligence import WalletIntelligenceEngine
+from polysignal.models.wallet import WalletSpecialization
 from tests.fixtures.wallets import (
-    create_mock_watchlist,
-    create_mock_wallet_profile,
-    create_high_quality_wallet,
-    create_medium_quality_wallet,
+    MOCK_WALLET_ADDRESSES,
+    create_consensus_activities_mixed,
+    create_consensus_activities_yes,
     create_high_copy_risk_wallet,
-    create_wallet_market,
+    create_high_quality_wallet,
+    create_mock_wallet_profile,
+    create_mock_watchlist,
     create_politics_market,
     create_profiles_dict,
-    create_consensus_activities_yes,
-    create_consensus_activities_mixed,
+    create_wallet_market,
     create_wallet_market_activity,
-    MOCK_WALLET_ADDRESSES,
 )
 
 

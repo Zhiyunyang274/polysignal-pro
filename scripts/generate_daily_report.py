@@ -21,10 +21,9 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
-
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_RUNS_DIR = REPO_ROOT / "runs"
@@ -46,7 +45,7 @@ def parse_bool(value: str) -> bool:
     return value.lower() in ("true", "1", "yes", "y", "on")
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate an offline daily research report from existing runs",
     )
@@ -74,7 +73,7 @@ def load_json(path: Path) -> dict[str, Any]:
 def load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    with open(path, "r") as f:
+    with open(path) as f:
         data = yaml.safe_load(f) or {}
     return data if isinstance(data, dict) else {}
 
@@ -122,7 +121,7 @@ class DailyReportData:
     runs_dir: Path
     output_dir: Path
     latest_n: int
-    date_filter: Optional[str]
+    date_filter: str | None
     runs: list[RunRecord] = field(default_factory=list)
     validation_summary: dict[str, Any] = field(default_factory=dict)
     intelligence_summary: dict[str, Any] = field(default_factory=dict)
@@ -133,7 +132,7 @@ class DailyReportData:
     safety_verification: dict[str, Any] = field(default_factory=dict)
 
 
-def discover_runs(runs_dir: Path, latest_n: int = 10, date_filter: Optional[str] = None) -> list[RunRecord]:
+def discover_runs(runs_dir: Path, latest_n: int = 10, date_filter: str | None = None) -> list[RunRecord]:
     records: list[RunRecord] = []
     if not runs_dir.exists():
         return records
@@ -203,7 +202,7 @@ def load_report_data(args: argparse.Namespace) -> DailyReportData:
     return data
 
 
-def date_range_for_runs(runs: list[RunRecord]) -> dict[str, Optional[str]]:
+def date_range_for_runs(runs: list[RunRecord]) -> dict[str, str | None]:
     dates = [r.date for r in runs if r.date]
     if not dates:
         return {"earliest": None, "latest": None}
@@ -467,7 +466,7 @@ def run(args: argparse.Namespace) -> int:
     return 0
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     return run(parse_args(argv))
 
 

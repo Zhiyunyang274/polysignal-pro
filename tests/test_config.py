@@ -2,10 +2,8 @@
 Tests for Configuration Loading
 """
 
-import pytest
-from pathlib import Path
 
-from polysignal.config import Config, AppSettings, RiskSettings
+from polysignal.config import AppSettings, Config, RiskSettings
 
 
 class TestConfig:

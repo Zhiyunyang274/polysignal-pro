@@ -6,7 +6,7 @@ import ast
 import csv
 import hashlib
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -412,7 +412,7 @@ def test_legacy_future_tolerance_can_only_make_clock_skew_stricter():
 
 
 def test_parse_utc_time_accepts_iso_epoch_seconds_and_epoch_milliseconds():
-    expected = datetime(2026, 8, 4, 10, 2, tzinfo=timezone.utc)
+    expected = datetime(2026, 8, 4, 10, 2, tzinfo=UTC)
     epoch_seconds = expected.timestamp()
 
     for value in [
@@ -424,7 +424,7 @@ def test_parse_utc_time_accepts_iso_epoch_seconds_and_epoch_milliseconds():
     ]:
         assert validator.parse_utc_time(value) == expected
 
-    assert validator.parse_utc_time(0) == datetime(1970, 1, 1, tzinfo=timezone.utc)
+    assert validator.parse_utc_time(0) == datetime(1970, 1, 1, tzinfo=UTC)
 
 
 @pytest.mark.parametrize("value", [True, -1, float("nan"), float("inf"), 10**15, "bad-time"])
@@ -966,7 +966,7 @@ def test_forward_epoch_millisecond_timestamp_at_clock_skew_cap_is_accepted(
     candidate_path = tmp_path / "candidates.csv"
     forward_path = tmp_path / "forward.jsonl"
     row = candidate()
-    observed_time = datetime(2026, 8, 4, 14, 2, tzinfo=timezone.utc)
+    observed_time = datetime(2026, 8, 4, 14, 2, tzinfo=UTC)
     server_time = observed_time.replace(microsecond=0).timestamp() * 1000 + 5000
     write_candidates(candidate_path, [row])
     write_observations(

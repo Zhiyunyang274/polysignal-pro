@@ -15,31 +15,25 @@ Coverage:
 """
 
 import asyncio
-import json
 import os
 import sys
-import tempfile
 from datetime import datetime, timedelta
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from polysignal.ingestion.orderbook_cache import OrderBookCacheManager, TokenOrderBookCache
+from polysignal.ingestion.websocket_message_handler import WSMessage
+from polysignal.models.market import Market, MarketCategory, MarketStatus
+from polysignal.models.orderbook import OrderBookSide, OrderBookSnapshot, PriceLevel
 from scripts.run_paper import (
     PaperTradingRunner,
     RunConfig,
     RunStatistics,
 )
-
-from polysignal.models.market import Market, MarketCategory, MarketStatus
-from polysignal.models.orderbook import OrderBookSnapshot, OrderBookSide, PriceLevel
-from polysignal.ingestion.websocket_client import CLOBWebSocketClient, WebSocketConfig
-from polysignal.ingestion.orderbook_cache import OrderBookCacheManager, TokenOrderBookCache
-from polysignal.ingestion.websocket_message_handler import WSMessage
-
 
 # =============================================================================
 # Fixtures
@@ -532,8 +526,8 @@ class TestSafetyConstraints:
         runner = PaperTradingRunner(mock_config, websocket_run_config)
 
         # Check config values
-        assert runner.config.env.live_trading_enabled == False
-        assert runner.config.env.allow_auto_execution == False
+        assert not runner.config.env.live_trading_enabled
+        assert not runner.config.env.allow_auto_execution
 
         # WebSocket should not have any trading methods
         assert runner.ws_client is None  # Not initialized yet
@@ -546,7 +540,7 @@ class TestSafetyConstraints:
         asyncio.run(runner._initialize_websocket())
 
         # Check WebSocket client config
-        assert runner.ws_client.config.enabled == True
+        assert runner.ws_client.config.enabled
 
         # WebSocket client should not have trading methods
         # (This is verified by checking the WebSocketConfig doesn't have trading params)

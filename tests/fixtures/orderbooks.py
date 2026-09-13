@@ -5,9 +5,8 @@ Test Fixtures - Mock orderbooks
 """
 
 from polysignal.models.orderbook import (
-    OrderBookSnapshot,
-    OrderBookUpdate,
     OrderBookSide,
+    OrderBookSnapshot,
     PriceLevel,
 )
 

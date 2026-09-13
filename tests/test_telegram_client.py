@@ -8,15 +8,15 @@ Tests the Telegram Signal Cockpit client with:
 - Message building
 """
 
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 
 from polysignal.interface.telegram_client import TelegramClient
-from polysignal.models.signal import SignalSide
 from polysignal.models.risk import RiskAction
 from tests.fixtures.telegram import (
-    create_test_signal,
     create_test_risk_decision,
+    create_test_signal,
 )
 
 

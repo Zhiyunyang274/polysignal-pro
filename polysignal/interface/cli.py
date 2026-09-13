@@ -5,17 +5,16 @@ Provides summary output and basic commands.
 """
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
+from rich.table import Table
 from rich.text import Text
 
-from polysignal.models.signal import Signal
 from polysignal.models.paper_trade import PaperOrder, PaperPosition, PaperTradeStats
 from polysignal.models.risk import RiskDecision
-
+from polysignal.models.signal import Signal
 
 console = Console()
 
@@ -210,7 +209,7 @@ def print_summary(
     signals: list[Signal],
     orders: list[PaperOrder],
     positions: list[PaperPosition],
-    stats: Optional[PaperTradeStats] = None,
+    stats: PaperTradeStats | None = None,
 ) -> None:
     """Print full summary"""
     console.clear()

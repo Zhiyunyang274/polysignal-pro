@@ -5,7 +5,6 @@ IMPORTANT: These errors are for LLM provider failures only.
 They do NOT affect trading execution directly.
 """
 
-from typing import Optional
 
 
 class LLMError(Exception):
@@ -81,7 +80,7 @@ class LLMRateLimit(LLMError):
         self,
         message: str = "LLM rate limit exceeded",
         provider: str = "unknown",
-        retry_after: Optional[float] = None,
+        retry_after: float | None = None,
     ):
         super().__init__(
             message=message,
@@ -98,7 +97,7 @@ class LLMInvalidJSON(LLMError):
         self,
         message: str = "LLM returned invalid JSON",
         provider: str = "unknown",
-        raw_output: Optional[str] = None,
+        raw_output: str | None = None,
     ):
         super().__init__(
             message=message,
@@ -115,7 +114,7 @@ class LLMSchemaError(LLMError):
         self,
         message: str = "LLM output doesn't match expected schema",
         provider: str = "unknown",
-        raw_output: Optional[str] = None,
+        raw_output: str | None = None,
     ):
         super().__init__(
             message=message,
@@ -132,7 +131,7 @@ class LLMForbiddenFieldsError(LLMError):
         self,
         message: str = "LLM output contains forbidden trading fields",
         provider: str = "unknown",
-        forbidden_fields: Optional[list[str]] = None,
+        forbidden_fields: list[str] | None = None,
     ):
         super().__init__(
             message=message,

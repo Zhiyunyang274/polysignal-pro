@@ -17,17 +17,20 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from statistics import mean
-from typing import Any, Optional
+from typing import Any
 from uuid import uuid4
 
 import httpx
 
 from polysignal.ingestion.clob_client import CLOBReadOnlyClient
 from polysignal.shadow.cross_market_convergence import CrossMarketConvergenceObservation
-from scripts.discover_cross_market_edges import EDGE_TYPE, price_levels, mid_price
-from scripts.discover_executable_edges import TokenPair, extract_token_pair, market_id, verify_safety
+from scripts.discover_cross_market_edges import EDGE_TYPE, mid_price, price_levels
+from scripts.discover_executable_edges import (
+    TokenPair,
+    extract_token_pair,
+    verify_safety,
+)
 from scripts.run_shadow_paper_loop import safe_bool, safe_float
-
 
 STATUS_HIGH_DUPLICATE = "high_confidence_duplicate"
 
@@ -52,7 +55,7 @@ class GammaMarketLookupClient:
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
 
-    async def fetch_market(self, market_id_value: str) -> Optional[dict[str, Any]]:
+    async def fetch_market(self, market_id_value: str) -> dict[str, Any] | None:
         async with httpx.AsyncClient(base_url=self.base_url, timeout=self.timeout_seconds) as client:
             response = await client.get(f"/markets/{market_id_value}")
             if response.status_code == 404:
@@ -62,7 +65,7 @@ class GammaMarketLookupClient:
         return payload if isinstance(payload, dict) else None
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Monitor cross-market price-gap convergence")
     parser.add_argument("--duration_minutes", type=int, default=30)
     parser.add_argument("--interval_seconds", type=int, default=60)
@@ -137,7 +140,7 @@ async def resolve_token_pair(
     market_id_value: str,
     token_index: dict[str, TokenPair],
     gamma_client: Any,
-) -> tuple[Optional[TokenPair], str]:
+) -> tuple[TokenPair | None, str]:
     if market_id_value in token_index:
         return token_index[market_id_value], ""
     try:
@@ -482,8 +485,8 @@ def write_report(path: Path, summary: dict[str, Any]) -> None:
 
 async def monitor_convergence(
     args: argparse.Namespace,
-    gamma_client: Optional[Any] = None,
-    clob_client: Optional[Any] = None,
+    gamma_client: Any | None = None,
+    clob_client: Any | None = None,
 ) -> tuple[list[CrossMarketConvergenceObservation], list[dict[str, Any]], dict[str, Any]]:
     started = datetime.utcnow()
     output_dir = Path(args.output_dir)
@@ -547,7 +550,7 @@ def print_summary(summary: dict[str, Any], dry_run: bool) -> None:
     print(f"tiny_live_recommendation: {summary.get('tiny_live_recommendation', 'NO')}")
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     observations, gated, summary = asyncio.run(monitor_convergence(args))
     print_summary(summary, args.dry_run)

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -268,7 +268,7 @@ class ConsoleDataLoader:
     ) -> dict[str, Any]:
         return {
             "schema_version": "polysignal_web_console_state_v1",
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "system": {
                 "mode": "READ_ONLY_RESEARCH",
                 "data_source": "run_scoped_artifacts",

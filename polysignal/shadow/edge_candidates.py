@@ -82,7 +82,7 @@ class EdgeCandidate:
         return payload
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "EdgeCandidate":
+    def from_dict(cls, data: dict[str, Any]) -> EdgeCandidate:
         payload = dict(data)
         payload["edge_type"] = EdgeType(payload.get("edge_type", EdgeType.PRICE_DISLOCATION_PROBABILITY_V1.value))
         payload["recommended_action"] = EdgeAction(payload.get("recommended_action", EdgeAction.WATCH_ONLY.value))

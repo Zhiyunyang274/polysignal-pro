@@ -5,22 +5,21 @@ Tests the Gamma API client with mocked HTTP responses.
 All tests use aioresponses to mock HTTP requests.
 """
 
-import pytest
-from unittest.mock import AsyncMock, patch
-import httpx
+from unittest.mock import patch
 
-from polysignal.ingestion.gamma_client import GammaAPIClient
+import httpx
+import pytest
+
 from polysignal.ingestion.api_errors import (
     APINotFound,
     APIRateLimit,
     APITimeout,
-    APIConnectionError,
     GammaAPIError,
 )
+from polysignal.ingestion.gamma_client import GammaAPIClient
 from tests.fixtures.api_responses import (
     create_gamma_market_response,
     create_gamma_markets_list_response,
-    create_gamma_market_missing_id,
 )
 
 

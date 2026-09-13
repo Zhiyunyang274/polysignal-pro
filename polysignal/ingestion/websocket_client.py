@@ -19,19 +19,23 @@ Market Channel:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
-from dataclasses import dataclass, field
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Callable, Awaitable
+from typing import TYPE_CHECKING
 
 from polysignal.ingestion.orderbook_cache import OrderBookCacheManager
-from polysignal.ingestion.subscription_manager import SubscriptionManager
 from polysignal.ingestion.reconnection_strategy import ReconnectionStrategy
-from polysignal.ingestion.websocket_message_handler import WSMessageHandler, WSMessage
+from polysignal.ingestion.subscription_manager import SubscriptionManager
+from polysignal.ingestion.websocket_message_handler import WSMessage, WSMessageHandler
 from polysignal.logging_config import get_logger
 
-
 logger = get_logger("polysignal.ingestion.websocket_client")
+
+if TYPE_CHECKING:
+    from websockets.asyncio.client import ClientConnection
 
 
 @dataclass
@@ -87,10 +91,10 @@ class CLOBWebSocketClient:
 
     def __init__(
         self,
-        config: Optional[WebSocketConfig] = None,
-        on_message: Optional[Callable[[WSMessage], Awaitable[None]]] = None,
-        on_connect: Optional[Callable[[], Awaitable[None]]] = None,
-        on_disconnect: Optional[Callable[[], Awaitable[None]]] = None,
+        config: WebSocketConfig | None = None,
+        on_message: Callable[[WSMessage], Awaitable[None]] | None = None,
+        on_connect: Callable[[], Awaitable[None]] | None = None,
+        on_disconnect: Callable[[], Awaitable[None]] | None = None,
     ):
         """
         Initialize WebSocket client.
@@ -107,11 +111,11 @@ class CLOBWebSocketClient:
         self.on_disconnect = on_disconnect
 
         # State
-        self._ws: Optional[object] = None  # WebSocket connection
+        self._ws: ClientConnection | None = None  # WebSocket connection
         self._connected: bool = False
         self._running: bool = False
-        self._last_ping: Optional[datetime] = None
-        self._last_pong: Optional[datetime] = None
+        self._last_ping: datetime | None = None
+        self._last_pong: datetime | None = None
 
         # Components
         self.cache_manager = OrderBookCacheManager(
@@ -131,8 +135,8 @@ class CLOBWebSocketClient:
         self.message_handler = WSMessageHandler()
 
         # Tasks
-        self._receive_task: Optional[asyncio.Task] = None
-        self._ping_task: Optional[asyncio.Task] = None
+        self._receive_task: asyncio.Task | None = None
+        self._ping_task: asyncio.Task | None = None
 
     @property
     def is_connected(self) -> bool:
@@ -199,7 +203,7 @@ class CLOBWebSocketClient:
 
             return True
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error("WebSocket connection timeout")
             return False
         except Exception as e:
@@ -214,24 +218,18 @@ class CLOBWebSocketClient:
         # Cancel tasks
         if self._receive_task:
             self._receive_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._receive_task
-            except asyncio.CancelledError:
-                pass
 
         if self._ping_task:
             self._ping_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._ping_task
-            except asyncio.CancelledError:
-                pass
 
         # Close connection
         if self._ws:
-            try:
+            with contextlib.suppress(Exception):
                 await self._ws.close()
-            except Exception:
-                pass
             self._ws = None
 
         logger.info("WebSocket disconnected")
@@ -255,8 +253,11 @@ class CLOBWebSocketClient:
             return 0, len(token_ids)
 
         async def send_subscribe(batch: list[str]) -> None:
+            ws = self._ws
+            if ws is None:
+                raise RuntimeError("WebSocket is not connected")
             payload = self.build_subscribe_payload(batch)
-            await self._ws.send(json.dumps(payload))
+            await ws.send(json.dumps(payload))
 
         return await self.subscription_manager.subscribe_batch(send_subscribe, token_ids)
 
@@ -278,7 +279,7 @@ class CLOBWebSocketClient:
         market_id: str,
         yes_token_id: str,
         no_token_id: str,
-    ) -> Optional[object]:
+    ) -> object | None:
         """
         Get orderbook from cache.
 
@@ -314,7 +315,7 @@ class CLOBWebSocketClient:
                 try:
                     data = json.loads(message)
                 except json.JSONDecodeError:
-                    logger.debug(f"Non-JSON message: {message[:100]}")
+                    logger.debug("Non-JSON message: {}", message[:100])
                     continue
 
                 # Handle list of messages (Polymarket returns arrays)
@@ -350,7 +351,7 @@ class CLOBWebSocketClient:
                         if self.on_message:
                             await self.on_message(parsed)
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # No message received, check connection
                 continue
             except asyncio.CancelledError:

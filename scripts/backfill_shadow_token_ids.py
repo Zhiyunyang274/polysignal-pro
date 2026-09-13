@@ -12,19 +12,18 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 import yaml
 
-import scripts.collect_shadow_forward_data as collector
 import scripts.build_tradable_candidates as tradable_script
-from polysignal.shadow.models import SHADOW_TRADE_FIELDS, ShadowTrade
+import scripts.collect_shadow_forward_data as collector
+from polysignal.shadow.models import ShadowTrade
 from polysignal.shadow.reporter import write_shadow_positions_json, write_shadow_trades_csv
-
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -70,7 +69,7 @@ class GammaTokenLookupClient:
         timeout_seconds: float = 10.0,
         max_api_calls: int = 20,
         base_url: str = BASE_URL,
-        cache_file: Optional[Path] = None,
+        cache_file: Path | None = None,
     ):
         self.timeout_seconds = timeout_seconds
         self.max_api_calls = max_api_calls
@@ -79,7 +78,7 @@ class GammaTokenLookupClient:
         self.api_calls_used = 0
         self._cache: dict[str, Any] = self._load_cache(cache_file)
 
-    def _load_cache(self, cache_file: Optional[Path]) -> dict[str, Any]:
+    def _load_cache(self, cache_file: Path | None) -> dict[str, Any]:
         if not cache_file or not cache_file.exists() or cache_file.stat().st_size == 0:
             return {}
         try:
@@ -94,7 +93,7 @@ class GammaTokenLookupClient:
         self.cache_file.parent.mkdir(parents=True, exist_ok=True)
         self.cache_file.write_text(json.dumps(self._cache, indent=2, sort_keys=True))
 
-    def _get_json(self, endpoint: str, params: Optional[dict[str, Any]] = None) -> Any:
+    def _get_json(self, endpoint: str, params: dict[str, Any] | None = None) -> Any:
         if self.api_calls_used >= self.max_api_calls:
             raise RuntimeError("max_api_calls_exceeded")
         cache_key = json.dumps({"endpoint": endpoint, "params": params or {}}, sort_keys=True)
@@ -111,7 +110,7 @@ class GammaTokenLookupClient:
         self._save_cache()
         return payload
 
-    def lookup_market_by_id(self, market_id: str) -> Optional[dict[str, Any]]:
+    def lookup_market_by_id(self, market_id: str) -> dict[str, Any] | None:
         data = self._get_json(f"/markets/{market_id}")
         return data if isinstance(data, dict) else None
 
@@ -120,7 +119,7 @@ class GammaTokenLookupClient:
         return [item for item in data if isinstance(item, dict)] if isinstance(data, list) else []
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Backfill YES/NO CLOB token IDs for shadow files")
     parser.add_argument("--runs_dir", type=str, default="runs")
     parser.add_argument("--shadow_dir", type=str, default="runs/shadow")
@@ -136,7 +135,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 def load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    with open(path, "r") as f:
+    with open(path) as f:
         data = yaml.safe_load(f) or {}
     return data if isinstance(data, dict) else {}
 
@@ -259,7 +258,7 @@ def get_market_id(record: dict[str, Any]) -> str:
     )
 
 
-def extract_token_pair(record: dict[str, Any], source: str) -> Optional[TokenPair]:
+def extract_token_pair(record: dict[str, Any], source: str) -> TokenPair | None:
     market_id = get_market_id(record)
     if not market_id:
         return None
@@ -323,7 +322,7 @@ def token_pair_from_outcomes(token_ids: list[Any], outcomes: list[Any]) -> tuple
     if outcomes and len(outcomes) == len(token_ids):
         yes = ""
         no = ""
-        for token_id, outcome in zip(token_ids, outcomes):
+        for token_id, outcome in zip(token_ids, outcomes, strict=False):
             normalized = str(outcome).strip().lower()
             if normalized == "yes":
                 yes = str(token_id)
@@ -340,7 +339,7 @@ def normalize_question(value: str) -> str:
     )
 
 
-def extract_gamma_token_pair(payload: dict[str, Any], expected_market_id: str, source: str = "gamma_api") -> tuple[Optional[TokenPair], Optional[str]]:
+def extract_gamma_token_pair(payload: dict[str, Any], expected_market_id: str, source: str = "gamma_api") -> tuple[TokenPair | None, str | None]:
     market_id = get_market_id(payload)
     if str(market_id) != str(expected_market_id):
         return None, "ambiguous_market_match"
@@ -363,7 +362,7 @@ def lookup_token_pair_with_gamma(
     market_id: str,
     question: str,
     client: Any,
-) -> tuple[Optional[TokenPair], Optional[str]]:
+) -> tuple[TokenPair | None, str | None]:
     try:
         payload = client.lookup_market_by_id(market_id)
     except Exception as exc:
@@ -486,7 +485,7 @@ def write_rows_csv(path: Path, rows: list[dict[str, Any]], preferred_fields: lis
     path.parent.mkdir(parents=True, exist_ok=True)
     fields = list(preferred_fields)
     for row in rows:
-        for key in row.keys():
+        for key in row:
             if key not in fields:
                 fields.append(key)
     with open(path, "w", newline="") as f:
@@ -498,7 +497,7 @@ def write_rows_csv(path: Path, rows: list[dict[str, Any]], preferred_fields: lis
 
 def run_backfill(
     args: argparse.Namespace,
-    api_client: Optional[Any] = None,
+    api_client: Any | None = None,
 ) -> tuple[dict[str, Any], dict[str, str], list[ShadowTrade], list[dict[str, Any]]]:
     started = datetime.utcnow()
     runs_dir = Path(args.runs_dir)
@@ -613,7 +612,7 @@ def print_summary(summary: dict[str, Any], dry_run: bool) -> None:
     print(f"market_lookup_not_found: {summary['market_lookup_not_found']}")
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     summary, output_files, trades, tradable_rows = run_backfill(args)
     print_summary(summary, args.dry_run)

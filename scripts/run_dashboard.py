@@ -21,7 +21,6 @@ from __future__ import annotations
 import argparse
 import importlib
 import importlib.util
-import json
 import sys
 from pathlib import Path
 
@@ -59,7 +58,7 @@ def check_safety_config() -> list[str]:
     try:
         import yaml
 
-        with open(risk_yaml, "r") as f:
+        with open(risk_yaml, "r") as f:  # noqa: UP015 (read-only gate, see test_dashboard)
             risk_config = yaml.safe_load(f) or {}
 
         if risk_config.get("live_trading_enabled") is not False:
@@ -161,7 +160,7 @@ def run_check() -> int:
         try:
             import yaml
 
-            with open(risk_yaml, "r") as f:
+            with open(risk_yaml, "r") as f:  # noqa: UP015 (read-only gate, see test_dashboard)
                 cfg = yaml.safe_load(f) or {}
             print(f"    live_trading_enabled: {cfg.get('live_trading_enabled', 'MISSING')}")
             print(f"    allow_auto_execution: {cfg.get('allow_auto_execution', 'MISSING')}")
@@ -220,7 +219,7 @@ def run_check() -> int:
     print("=" * 60)
     if all_ok:
         print("ALL CHECKS PASSED")
-        print(f"Dashboard is safe to launch at http://localhost:8501")
+        print("Dashboard is safe to launch at http://localhost:8501")
         print()
         print("To launch:")
         print("  streamlit run polysignal/interface/dashboard.py --server.port 8501")

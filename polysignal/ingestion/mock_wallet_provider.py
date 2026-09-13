@@ -8,9 +8,9 @@ Does NOT connect to real Polymarket API.
 from __future__ import annotations
 
 import random
-from datetime import datetime, timedelta
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
+from polysignal.models.market import MarketCategory
 from polysignal.models.wallet import (
     WalletActivity,
     WalletActivityHistory,
@@ -18,8 +18,6 @@ from polysignal.models.wallet import (
     WalletSpecialization,
     WatchlistEntry,
 )
-from polysignal.models.market import MarketCategory
-
 
 # Mock wallet addresses
 MOCK_WALLET_ADDRESSES = {
@@ -92,12 +90,12 @@ def generate_mock_wallet_activity(
     side: str = "yes",
     price: float = 0.5,
     size_usd: float = 100.0,
-    timestamp: Optional[datetime] = None,
-    pnl_usd: Optional[float] = None,
+    timestamp: datetime | None = None,
+    pnl_usd: float | None = None,
 ) -> WalletActivity:
     """Generate a single mock wallet activity"""
     if timestamp is None:
-        timestamp = datetime.utcnow() - timedelta(hours=random.randint(1, 48))
+        timestamp = datetime.now(UTC) - timedelta(hours=random.randint(1, 48))
 
     return WalletActivity(
         wallet_address=wallet_address,
@@ -120,7 +118,7 @@ def generate_mock_wallet_history(
 ) -> WalletActivityHistory:
     """Generate mock wallet activity history"""
     activities = []
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
 
     # Determine category distribution
     categories = [MarketCategory.CRYPTO, MarketCategory.SPORTS, MarketCategory.POLITICS]
@@ -137,7 +135,7 @@ def generate_mock_wallet_history(
     win_count = 0
     loss_count = 0
 
-    for i in range(num_trades):
+    for _i in range(num_trades):
         # Select category based on weights
         rand = random.random()
         cumulative = 0.0
@@ -203,8 +201,8 @@ def generate_mock_wallet_history(
 
 def generate_mock_wallet_profile(
     wallet_address: str,
-    alias: Optional[str] = None,
-    history: Optional[WalletActivityHistory] = None,
+    alias: str | None = None,
+    history: WalletActivityHistory | None = None,
     primary_category: WalletSpecialization = WalletSpecialization.CRYPTO,
     copy_ratio: float = 0.2,
 ) -> WalletProfile:

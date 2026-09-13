@@ -13,7 +13,7 @@ import csv
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from polysignal.shadow.tradable_candidates import (
     TRADABLE_SCORE_DISCLAIMER,
@@ -21,7 +21,6 @@ from polysignal.shadow.tradable_candidates import (
     TradableCandidateBuilder,
     TradableCandidateBuilderConfig,
 )
-
 
 TRADABLE_CANDIDATE_FIELDS = [
     "market_id",
@@ -53,7 +52,7 @@ TRADABLE_CANDIDATE_FIELDS = [
 ]
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build offline tradable candidate pool")
     parser.add_argument("--runs_dir", type=str, default="runs")
     parser.add_argument("--output_dir", type=str, default="runs")
@@ -238,7 +237,7 @@ def print_summary(candidates: list[TradableCandidate], summary: dict[str, Any], 
     print(TRADABLE_SCORE_DISCLAIMER)
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     candidates, summary = build(args)
     print_summary(candidates, summary, args.dry_run)

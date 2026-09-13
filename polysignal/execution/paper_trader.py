@@ -8,9 +8,9 @@ IMPORTANT: Paper Trader is the MVP core module.
 - All orders must pass through Risk Governor first
 """
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from math import isfinite
-from typing import Any, Optional
+from typing import Any
 
 from polysignal.models.orderbook import OrderBookSnapshot
 from polysignal.models.paper_trade import (
@@ -22,6 +22,7 @@ from polysignal.models.paper_trade import (
 )
 from polysignal.models.risk import RiskDecision
 from polysignal.models.signal import Signal, SignalSide
+from polysignal.utils.time import utc_now
 
 
 class FillSimulation:
@@ -115,8 +116,8 @@ class PaperTrader:
         signal: Signal,
         risk_decision: RiskDecision,
         orderbook: OrderBookSnapshot,
-        size_usd: Optional[float] = None,
-    ) -> tuple[Optional[PaperOrder], Optional[PaperPosition], str]:
+        size_usd: float | None = None,
+    ) -> tuple[PaperOrder | None, PaperPosition | None, str]:
         """
         Execute a paper trade.
 
@@ -180,7 +181,7 @@ class PaperTrader:
             filled_price=fill.filled_price,
             slippage=fill.slippage,
             status=OrderStatus.FILLED if not fill.partial_fill else OrderStatus.PARTIALLY_FILLED,
-            expires_at=datetime.utcnow() + timedelta(seconds=self.order_timeout_seconds),
+            expires_at=utc_now() + timedelta(seconds=self.order_timeout_seconds),
             strategy_name=signal.strategy_name,
         )
 
@@ -324,14 +325,14 @@ class PaperTrader:
                     + fill_price * order.filled_size
                 ) / total_size
             position.size = total_size
-            position.updated_at = datetime.utcnow()
+            position.updated_at = utc_now()
 
         # Update unrealized PnL
         position.update_price(current_price)
 
         return position
 
-    def mark_to_market(self, market_id: str, current_price: float) -> Optional[PaperPosition]:
+    def mark_to_market(self, market_id: str, current_price: float) -> PaperPosition | None:
         """Mark position to market"""
         if not isfinite(current_price) or not 0 <= current_price <= 1:
             return None
@@ -348,7 +349,7 @@ class PaperTrader:
         market_id: str,
         close_price: float,
         risk_decision: RiskDecision | None = None,
-    ) -> tuple[Optional[PaperOrder], float]:
+    ) -> tuple[PaperOrder | None, float]:
         """Close a position"""
         if (
             risk_decision is None
@@ -378,7 +379,7 @@ class PaperTrader:
         position.size = 0
         position.current_price = close_price
         position.unrealized_pnl_usd = 0.0
-        position.updated_at = datetime.utcnow()
+        position.updated_at = utc_now()
 
         # Create close order
         close_side = {
@@ -405,11 +406,11 @@ class PaperTrader:
 
         return close_order, pnl
 
-    def get_order(self, order_id: str) -> Optional[PaperOrder]:
+    def get_order(self, order_id: str) -> PaperOrder | None:
         """Get order by ID"""
         return self._orders.get(order_id)
 
-    def get_position(self, market_id: str) -> Optional[PaperPosition]:
+    def get_position(self, market_id: str) -> PaperPosition | None:
         """Get position by market ID"""
         return self._positions.get(market_id)
 

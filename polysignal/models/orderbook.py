@@ -5,10 +5,11 @@ Orderbook Models - Polymarket CLOB orderbook data
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
+
+from polysignal.utils.time import utc_now
 
 
 class PriceLevel(BaseModel):
@@ -21,8 +22,8 @@ class PriceLevel(BaseModel):
 class OrderBookSide(BaseModel):
     """One side of the orderbook"""
     levels: list[PriceLevel] = Field(default_factory=list)
-    best_price: Optional[float] = None
-    best_size: Optional[float] = None
+    best_price: float | None = None
+    best_size: float | None = None
     total_depth_usd: float = Field(0.0, ge=0)
 
     def calculate_best_bid(self) -> None:
@@ -63,7 +64,7 @@ class OrderBookSnapshot(BaseModel):
     """Complete orderbook snapshot"""
     snapshot_id: str = Field(default_factory=lambda: str(uuid4()))
     market_id: str = Field(..., description="Market ID")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=utc_now)
 
     # YES side
     yes_bids: OrderBookSide = Field(default_factory=OrderBookSide)  # Buy YES
@@ -74,12 +75,12 @@ class OrderBookSnapshot(BaseModel):
     no_asks: OrderBookSide = Field(default_factory=OrderBookSide)   # Sell NO
 
     # Calculated fields
-    mid_price_yes: Optional[float] = Field(None, description="YES mid price")
-    spread_yes: Optional[float] = Field(None, description="YES spread")
-    spread_pct_yes: Optional[float] = Field(None, description="YES spread percentage")
+    mid_price_yes: float | None = Field(None, description="YES mid price")
+    spread_yes: float | None = Field(None, description="YES spread")
+    spread_pct_yes: float | None = Field(None, description="YES spread percentage")
 
     # Combined ask for YES/NO mispricing detection
-    combined_ask: Optional[float] = Field(None, description="YES best ask + NO best ask")
+    combined_ask: float | None = Field(None, description="YES best ask + NO best ask")
 
     # Data quality
     is_stale: bool = Field(False, description="Data is stale")
@@ -124,22 +125,22 @@ class OrderBookSnapshot(BaseModel):
 class OrderBookUpdate(BaseModel):
     """WebSocket orderbook update (lightweight)"""
     market_id: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=utc_now)
 
     # Best prices only
-    yes_best_bid: Optional[float] = None
-    yes_best_ask: Optional[float] = None
-    yes_best_bid_size: Optional[float] = None
-    yes_best_ask_size: Optional[float] = None
+    yes_best_bid: float | None = None
+    yes_best_ask: float | None = None
+    yes_best_bid_size: float | None = None
+    yes_best_ask_size: float | None = None
 
-    no_best_bid: Optional[float] = None
-    no_best_ask: Optional[float] = None
-    no_best_bid_size: Optional[float] = None
-    no_best_ask_size: Optional[float] = None
+    no_best_bid: float | None = None
+    no_best_ask: float | None = None
+    no_best_bid_size: float | None = None
+    no_best_ask_size: float | None = None
 
     source: str = Field("mock", description="Data source")
 
-    def get_combined_ask(self) -> Optional[float]:
+    def get_combined_ask(self) -> float | None:
         """Calculate combined ask for YES/NO mispricing"""
         if self.yes_best_ask is not None and self.no_best_ask is not None:
             return self.yes_best_ask + self.no_best_ask

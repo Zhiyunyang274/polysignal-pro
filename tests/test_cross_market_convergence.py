@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import argparse
 import ast
 import csv
 import json
@@ -10,10 +9,9 @@ from pathlib import Path
 
 import yaml
 
-from polysignal.ingestion.api_types import CLOBOrderbook, CLOBPriceLevel
-from polysignal.shadow.cross_market_convergence import CrossMarketConvergenceObservation
 import scripts.monitor_cross_market_convergence as conv
 import scripts.run_shadow_paper_loop as shadow_loop
+from polysignal.shadow.cross_market_convergence import CrossMarketConvergenceObservation
 
 
 def candidate(**overrides):

@@ -17,12 +17,13 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from typing import Optional, TypeVar
+from typing import TypeVar, cast
 
 import httpx
 from pydantic import BaseModel, ValidationError
 
 from polysignal.llm.base import LLMProvider
+from polysignal.llm.llm_config import XFyunAnthropicConfig  # single source of truth
 from polysignal.llm.llm_errors import (
     LLMAuthenticationError,
     LLMConnectionError,
@@ -72,41 +73,6 @@ def check_forbidden_trading_fields_in_keys(data: dict) -> tuple[bool, list[str]]
     return len(found) > 0, found
 
 
-class XFyunAnthropicConfig:
-    """XFyun Anthropic provider configuration"""
-
-    def __init__(
-        self,
-        model: str = "astron-code-latest",
-        base_url: str = "https://maas-coding-api.cn-huabei-1.xf-yun.com/anthropic",
-        timeout_seconds: float = 30.0,
-        max_retries: int = 2,
-        temperature: float = 0.1,
-        max_tokens: int = 2000,
-    ):
-        self.model = model
-        self.base_url = base_url
-        self.timeout_seconds = timeout_seconds
-        self.max_retries = max_retries
-        self.temperature = temperature
-        self.max_tokens = max_tokens
-
-    def get_api_key(self) -> Optional[str]:
-        """Get API key from environment variable"""
-        import os
-        return os.environ.get("XFYUN_API_KEY")
-
-    def get_model(self) -> str:
-        """Get model ID (env override takes precedence)"""
-        import os
-        env_model = os.environ.get("XFYUN_MODEL")
-        return env_model if env_model else self.model
-
-    def is_configured(self) -> bool:
-        """Check if provider is configured (has API key)"""
-        return self.get_api_key() is not None
-
-
 class XFyunAnthropicProvider(LLMProvider):
     """
     XFyun Anthropic LLM Provider.
@@ -119,7 +85,7 @@ class XFyunAnthropicProvider(LLMProvider):
     - LLM CANNOT directly trigger trading execution
     """
 
-    def __init__(self, config: Optional[XFyunAnthropicConfig] = None):
+    def __init__(self, config: XFyunAnthropicConfig | None = None):
         """Initialize XFyun Anthropic provider."""
         self.config = config or XFyunAnthropicConfig()
         self._call_count = 0
@@ -143,8 +109,8 @@ class XFyunAnthropicProvider(LLMProvider):
         self,
         prompt: str,
         response_schema: type[T],
-        timeout_seconds: Optional[float] = None,
-        max_retries: Optional[int] = None,
+        timeout_seconds: float | None = None,
+        max_retries: int | None = None,
     ) -> LLMResponse:
         """Analyze prompt using XFyun Anthropic API."""
         if not self.config.is_configured():
@@ -159,7 +125,7 @@ class XFyunAnthropicProvider(LLMProvider):
         timeout = timeout_seconds or self.config.timeout_seconds
         retries = max_retries if max_retries is not None else self.config.max_retries
 
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
 
         for attempt in range(retries + 1):
             try:
@@ -223,11 +189,11 @@ class XFyunAnthropicProvider(LLMProvider):
             async with httpx.AsyncClient(timeout=timeout_seconds) as client:
                 response = await client.post(
                     f"{self.config.base_url}/v1/messages",
-                    headers={
+                    headers=cast(dict[str, str], {
                         "x-api-key": self.config.get_api_key(),
                         "Content-Type": "application/json",
                         "anthropic-version": "2023-06-01",
-                    },
+                    }),
                     json=request_body,
                 )
 
@@ -279,17 +245,17 @@ class XFyunAnthropicProvider(LLMProvider):
 
                 return self._parse_response(content, response_schema, latency)
 
-        except httpx.TimeoutException:
+        except httpx.TimeoutException as e:
             raise LLMTimeout(
                 message=f"XFyun API request timed out after {timeout_seconds}s",
                 provider="xfyun_anthropic",
-            )
+            ) from e
 
         except httpx.ConnectError as e:
             raise LLMConnectionError(
                 message=f"Failed to connect to XFyun API: {e}",
                 provider="xfyun_anthropic",
-            )
+            ) from e
 
     def _build_user_prompt(self, prompt: str, response_schema: type[T]) -> str:
         """Build user prompt with schema requirements"""
@@ -355,7 +321,7 @@ class XFyunAnthropicProvider(LLMProvider):
                 message=f"Invalid JSON from XFyun: {e}",
                 provider="xfyun_anthropic",
                 raw_output=content,
-            )
+            ) from e
 
         has_forbidden, forbidden_fields = check_forbidden_trading_fields_in_keys(data)
         if has_forbidden:
@@ -372,7 +338,7 @@ class XFyunAnthropicProvider(LLMProvider):
                 message=f"Schema validation failed: {e}",
                 provider="xfyun_anthropic",
                 raw_output=content,
-            )
+            ) from e
 
         confidence = getattr(parsed, "confidence", 0.8)
 

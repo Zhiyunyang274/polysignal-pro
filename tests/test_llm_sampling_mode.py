@@ -12,25 +12,23 @@ Coverage:
 - Report includes LLM sampling section
 """
 
-import json
 import os
 import sys
 from datetime import datetime
-from pathlib import Path
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock
 
 import pytest
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from polysignal.models.market import Market
+from polysignal.models.orderbook import OrderBookSnapshot
 from scripts.run_paper import (
     PaperTradingRunner,
     RunConfig,
     RunStatistics,
 )
-from polysignal.models.market import Market
-from polysignal.models.orderbook import OrderBookSnapshot
 
 
 class TestRunConfigLLMSampling:

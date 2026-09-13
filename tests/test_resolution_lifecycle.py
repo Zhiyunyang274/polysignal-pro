@@ -4,23 +4,22 @@ Tests for Resolution & Lifecycle Engine
 
 import pytest
 
-from polysignal.models.market import MarketCategory, MarketStatus
-from polysignal.models.lifecycle import LifecyclePhase, AmbiguityLevel, ResolutionRiskLevel
 from polysignal.engines.resolution_lifecycle import ResolutionLifecycleEngine
+from polysignal.models.lifecycle import AmbiguityLevel, LifecyclePhase, ResolutionRiskLevel
+from polysignal.models.market import MarketCategory
 from tests.fixtures.lifecycle import (
-    create_lifecycle_market,
-    create_early_phase_market,
-    create_mid_phase_market,
-    create_late_phase_market,
-    create_closing_phase_market,
-    create_closed_market,
-    create_resolved_market,
     create_ambiguous_market,
-    create_ambiguous_keyword_market,
-    create_no_resolution_source_market,
+    create_closed_market,
+    create_closing_phase_market,
+    create_early_phase_market,
     create_forbidden_category_market,
+    create_late_phase_market,
+    create_lifecycle_market,
+    create_mid_phase_market,
     create_no_close_time_market,
     create_no_created_at_market,
+    create_no_resolution_source_market,
+    create_resolved_market,
 )
 
 

@@ -26,7 +26,7 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -41,7 +41,7 @@ NEAR_MISS_TIERS = {
 }
 
 
-def classify_near_miss_tier(combined_ask: float) -> Optional[str]:
+def classify_near_miss_tier(combined_ask: float) -> str | None:
     """Classify combined_ask into near-miss tier"""
     # Handle negative combined_ask as mispricing signal
     if combined_ask < 0:
@@ -141,22 +141,22 @@ class ObservedMarket:
     """Market observed during run (from combined_ask observations)"""
     market_id: str
     combined_ask: float
-    near_miss_tier: Optional[str] = None
+    near_miss_tier: str | None = None
     category: str = "Other"
 
     # Optional fields from LLM sampling
-    event_score: Optional[float] = None
-    confidence: Optional[float] = None
-    suggested_mode: Optional[str] = None
-    evidence_strength: Optional[float] = None
-    market_relevance: Optional[float] = None
-    ambiguity_risk: Optional[float] = None
+    event_score: float | None = None
+    confidence: float | None = None
+    suggested_mode: str | None = None
+    evidence_strength: float | None = None
+    market_relevance: float | None = None
+    ambiguity_risk: float | None = None
     risk_flags: list[str] = field(default_factory=list)
-    latency_seconds: Optional[float] = None
-    llm_success: Optional[bool] = None
-    llm_error: Optional[str] = None
-    question: Optional[str] = None
-    volume_24h: Optional[float] = None
+    latency_seconds: float | None = None
+    llm_success: bool | None = None
+    llm_error: str | None = None
+    question: str | None = None
+    volume_24h: float | None = None
 
 
 @dataclass
@@ -182,9 +182,9 @@ class IntelligenceSummary:
     llm_total_samples: int = 0
     llm_successful_samples: int = 0
     llm_failed_samples: int = 0
-    llm_avg_event_score: Optional[float] = None
-    llm_avg_confidence: Optional[float] = None
-    llm_avg_latency: Optional[float] = None
+    llm_avg_event_score: float | None = None
+    llm_avg_confidence: float | None = None
+    llm_avg_latency: float | None = None
     llm_suggested_mode_distribution: dict[str, int] = field(default_factory=dict)
 
     # Category distribution (heuristic)
@@ -193,7 +193,7 @@ class IntelligenceSummary:
 
     # Correlation analysis
     correlation_sample_size: int = 0
-    event_score_vs_combined_ask_correlation: Optional[float] = None
+    event_score_vs_combined_ask_correlation: float | None = None
     correlation_note: str = ""
 
     # Top candidates
@@ -236,7 +236,7 @@ class IntelligenceAnalyzer:
             print(f"Error: events.jsonl not found at {self.events_file}")
             return False
 
-        with open(self.events_file, "r") as f:
+        with open(self.events_file) as f:
             self.events = [json.loads(line) for line in f if line.strip()]
 
         # Load summary
@@ -244,7 +244,7 @@ class IntelligenceAnalyzer:
             print(f"Error: summary.json not found at {self.summary_file}")
             return False
 
-        with open(self.summary_file, "r") as f:
+        with open(self.summary_file) as f:
             self.summary = json.load(f)
 
         return True
@@ -491,9 +491,9 @@ class IntelligenceAnalyzer:
     def generate_markdown_report(self, summary: IntelligenceSummary) -> str:
         """Generate Markdown intelligence report"""
         lines = [
-            f"# Market Intelligence Report",
+            "# Market Intelligence Report",
             "",
-            f"## Run Information",
+            "## Run Information",
             "",
             f"- **Run ID**: {summary.run_id}",
             f"- **Analysis Timestamp**: {summary.analysis_timestamp}",
@@ -727,7 +727,7 @@ class IntelligenceAnalyzer:
         print(f"CSV exported to: {output_path}")
 
 
-def find_latest_run() -> Optional[Path]:
+def find_latest_run() -> Path | None:
     """Find the latest run directory"""
     runs_dir = Path("runs")
     if not runs_dir.exists():

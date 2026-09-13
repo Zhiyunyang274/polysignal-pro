@@ -65,11 +65,14 @@ polysignal/config.py
 主要负责文件：
 
 ```text
-polysignal/ingestion/gamma_market_loader.py
-polysignal/ingestion/clob_rest_client.py
-polysignal/ingestion/clob_orderbook_ws.py
-polysignal/ingestion/data_api_client.py
-polysignal/ingestion/market_universe.py
+polysignal/ingestion/gamma_client.py
+polysignal/ingestion/clob_client.py
+polysignal/ingestion/websocket_client.py
+polysignal/ingestion/websocket_message_handler.py
+polysignal/ingestion/data_provider_manager.py
+polysignal/ingestion/data_converter.py
+polysignal/ingestion/orderbook_cache.py
+polysignal/ingestion/mock_data_provider.py
 ```
 
 交付要求：
@@ -96,8 +99,9 @@ polysignal/ingestion/market_universe.py
 ```text
 polysignal/engines/market_microstructure.py
 polysignal/strategies/yes_no_mispricing.py
-polysignal/strategies/orderbook_imbalance.py
+polysignal/strategies/base.py
 tests/test_yes_no_mispricing.py
+tests/test_market_microstructure.py
 ```
 
 硬约束：
@@ -123,8 +127,9 @@ tests/test_yes_no_mispricing.py
 
 ```text
 polysignal/engines/wallet_intelligence.py
-polysignal/strategies/wallet_consensus.py
+polysignal/ingestion/mock_wallet_provider.py
 config/wallets.yaml
+tests/test_wallet_intelligence.py
 ```
 
 硬约束：
@@ -148,10 +153,11 @@ config/wallets.yaml
 主要负责文件：
 
 ```text
-polysignal/llm/provider.py
-polysignal/llm/event_analyzer.py
-polysignal/llm/market_rule_parser.py
-polysignal/llm/prompts.py
+polysignal/llm/base.py
+polysignal/llm/provider_router.py
+polysignal/llm/mock_provider.py
+polysignal/llm/schemas.py
+polysignal/llm/llm_config.py
 polysignal/engines/event_intelligence.py
 config/llm.yaml
 ```
@@ -179,8 +185,8 @@ config/llm.yaml
 
 ```text
 polysignal/engines/resolution_lifecycle.py
-polysignal/strategies/settlement_edge.py
-tests/test_lifecycle_engine.py
+polysignal/models/lifecycle.py
+tests/test_resolution_lifecycle.py
 ```
 
 硬约束：
@@ -207,12 +213,19 @@ tests/test_lifecycle_engine.py
 polysignal/risk/risk_governor.py
 polysignal/risk/exposure_guard.py
 polysignal/risk/liquidity_guard.py
-polysignal/risk/ambiguity_guard.py
-polysignal/risk/slippage_guard.py
-polysignal/risk/circuit_breaker.py
+polysignal/execution/account_state.py
 config/risk.yaml
-tests/test_risk_governor.py
+tests/test_risk_governor*.py
+tests/test_risk_guards.py
+tests/test_account_state.py
 ```
+
+注（2026-09-11 更新）：exposure_guard 与 liquidity_guard 已接入 Risk Governor 硬拒绝链
+（Iteration 006）——exposure 守卫提供市场级/策略级敞口硬限制，liquidity 守卫承接
+Governor 原内嵌的 spread/depth 检查（单一事实来源）。`ambiguity_guard.py` /
+`slippage_guard.py` / `circuit_breaker.py` 从未实现：歧义与滑点逻辑内嵌于 Risk Governor，
+config/risk.yaml 的 `circuit_breaker` 配置节目前无代码消费（见
+docs/system_review_2026-09-11.md D12）。
 
 硬约束：
 
@@ -238,9 +251,12 @@ tests/test_risk_governor.py
 polysignal/execution/paper_trader.py
 polysignal/execution/order_manager.py
 polysignal/execution/live_trader_stub.py
-polysignal/execution/position_manager.py
+polysignal/execution/account_state.py
 tests/test_paper_trader.py
+tests/test_account_state.py
 ```
+
+注：position 管理由 PaperTrader 内部维护，无独立 position_manager.py。
 
 硬约束：
 

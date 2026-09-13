@@ -17,12 +17,13 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 import httpx
 from pydantic import BaseModel, ValidationError
 
 from polysignal.llm.base import LLMProvider
+from polysignal.llm.llm_config import SenseNovaConfig  # single source of truth
 from polysignal.llm.llm_errors import (
     LLMAuthenticationError,
     LLMConnectionError,
@@ -72,41 +73,6 @@ def check_forbidden_trading_fields_in_keys(data: dict) -> tuple[bool, list[str]]
     return len(found) > 0, found
 
 
-class SenseNovaConfig:
-    """SenseNova provider configuration"""
-
-    def __init__(
-        self,
-        model: str = "sensenova-6.7-flash-lite",
-        base_url: str = "https://token.sensenova.cn/v1",
-        timeout_seconds: float = 30.0,
-        max_retries: int = 2,
-        temperature: float = 0.1,
-        max_tokens: int = 2000,
-    ):
-        self.model = model
-        self.base_url = base_url
-        self.timeout_seconds = timeout_seconds
-        self.max_retries = max_retries
-        self.temperature = temperature
-        self.max_tokens = max_tokens
-
-    def get_api_key(self) -> Optional[str]:
-        """Get API key from environment variable"""
-        import os
-        return os.environ.get("SENSENOVA_API_KEY")
-
-    def get_model(self) -> str:
-        """Get model ID (env override takes precedence)"""
-        import os
-        env_model = os.environ.get("SENSENOVA_MODEL")
-        return env_model if env_model else self.model
-
-    def is_configured(self) -> bool:
-        """Check if provider is configured (has API key)"""
-        return self.get_api_key() is not None
-
-
 class SenseNovaProvider(LLMProvider):
     """
     SenseNova LLM Provider (OpenAI-compatible).
@@ -119,7 +85,7 @@ class SenseNovaProvider(LLMProvider):
     - LLM CANNOT directly trigger trading execution
     """
 
-    def __init__(self, config: Optional[SenseNovaConfig] = None):
+    def __init__(self, config: SenseNovaConfig | None = None):
         """Initialize SenseNova provider."""
         self.config = config or SenseNovaConfig()
         self._call_count = 0
@@ -143,8 +109,8 @@ class SenseNovaProvider(LLMProvider):
         self,
         prompt: str,
         response_schema: type[T],
-        timeout_seconds: Optional[float] = None,
-        max_retries: Optional[int] = None,
+        timeout_seconds: float | None = None,
+        max_retries: int | None = None,
     ) -> LLMResponse:
         """Analyze prompt using SenseNova API."""
         if not self.config.is_configured():
@@ -159,7 +125,7 @@ class SenseNovaProvider(LLMProvider):
         timeout = timeout_seconds or self.config.timeout_seconds
         retries = max_retries if max_retries is not None else self.config.max_retries
 
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
 
         for attempt in range(retries + 1):
             try:
@@ -277,17 +243,17 @@ class SenseNovaProvider(LLMProvider):
 
                 return self._parse_response(content, response_schema, latency)
 
-        except httpx.TimeoutException:
+        except httpx.TimeoutException as e:
             raise LLMTimeout(
                 message=f"SenseNova API request timed out after {timeout_seconds}s",
                 provider="sensenova",
-            )
+            ) from e
 
         except httpx.ConnectError as e:
             raise LLMConnectionError(
                 message=f"Failed to connect to SenseNova API: {e}",
                 provider="sensenova",
-            )
+            ) from e
 
     def _build_system_prompt(self, response_schema: type[T]) -> str:
         """Build system prompt with schema requirements"""
@@ -336,7 +302,7 @@ class SenseNovaProvider(LLMProvider):
                 message=f"Invalid JSON from SenseNova: {e}",
                 provider="sensenova",
                 raw_output=content,
-            )
+            ) from e
 
         has_forbidden, forbidden_fields = check_forbidden_trading_fields_in_keys(data)
         if has_forbidden:
@@ -353,7 +319,7 @@ class SenseNovaProvider(LLMProvider):
                 message=f"Schema validation failed: {e}",
                 provider="sensenova",
                 raw_output=content,
-            )
+            ) from e
 
         confidence = getattr(parsed, "confidence", 0.8)
 

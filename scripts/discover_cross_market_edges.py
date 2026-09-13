@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from statistics import mean
-from typing import Any, Optional
+from typing import Any
 
 from polysignal.ingestion.api_errors import CLOBError
 from polysignal.ingestion.api_types import CLOBOrderbook
@@ -35,7 +35,6 @@ from scripts.discover_executable_edges import (
     verify_safety,
 )
 from scripts.run_shadow_paper_loop import safe_float
-
 
 RELATIONSHIP_DUPLICATE = "same_event_duplicate"
 RELATIONSHIP_NEAR_DUPLICATE = "near_duplicate"
@@ -85,7 +84,7 @@ class PricedMarket:
         return mid_price(self.no)
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Discover read-only cross-market consistency edges")
     parser.add_argument("--max_markets", type=int, default=1000)
     parser.add_argument("--min_volume", type=float, default=1000.0)
@@ -189,7 +188,7 @@ def detect_related_groups(markets: list[dict[str, Any]], max_group_size: int) ->
     return groups
 
 
-def price_levels(orderbook: Optional[CLOBOrderbook]) -> dict[str, float]:
+def price_levels(orderbook: CLOBOrderbook | None) -> dict[str, float]:
     if orderbook is None:
         return {
             "best_bid": 0.0,
@@ -331,8 +330,8 @@ def build_candidate_rows(
 
 async def discover_cross_market_edges(
     args: argparse.Namespace,
-    gamma_client: Optional[Any] = None,
-    clob_client: Optional[Any] = None,
+    gamma_client: Any | None = None,
+    clob_client: Any | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     started = datetime.utcnow()
     timestamp = started.isoformat()
@@ -344,8 +343,6 @@ async def discover_cross_market_edges(
     raw_markets: list[dict[str, Any]] = []
     rows: list[dict[str, Any]] = []
     groups: list[dict[str, Any]] = []
-    duplicate_groups = 0
-    mutex_groups = 0
 
     try:
         try:
@@ -358,8 +355,8 @@ async def discover_cross_market_edges(
         avoid_ids = load_avoid_ids(Path(args.output_dir))
         markets = [market for market in markets if not market_safety_reject_reason(market, avoid_ids)]
         groups = detect_related_groups(markets, args.max_group_size)
-        duplicate_groups = sum(1 for group in groups if group["relationship_type"] in {RELATIONSHIP_DUPLICATE, RELATIONSHIP_NEAR_DUPLICATE})
-        mutex_groups = sum(1 for group in groups if group["relationship_type"] == RELATIONSHIP_MUTUALLY_EXCLUSIVE)
+        sum(1 for group in groups if group["relationship_type"] in {RELATIONSHIP_DUPLICATE, RELATIONSHIP_NEAR_DUPLICATE})
+        sum(1 for group in groups if group["relationship_type"] == RELATIONSHIP_MUTUALLY_EXCLUSIVE)
         if args.dry_run:
             return [], summarize(started, markets, groups, [], 0, api_error_count, errors)
 
@@ -566,7 +563,7 @@ async def run_async(args: argparse.Namespace) -> tuple[list[dict[str, Any]], dic
     return await discover_cross_market_edges(args)
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     rows, summary = asyncio.run(run_async(args))
     print_summary(summary, args.dry_run)

@@ -259,7 +259,7 @@ def _token_pair_from_outcomes(token_ids: list[Any], outcomes: list[Any]) -> tupl
     if outcomes and len(outcomes) == len(token_ids):
         yes_token_id = ""
         no_token_id = ""
-        for token_id, outcome in zip(token_ids, outcomes):
+        for token_id, outcome in zip(token_ids, outcomes, strict=False):
             label = str(outcome).strip().lower()
             if label == "yes":
                 yes_token_id = str(token_id)

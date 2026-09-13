@@ -18,7 +18,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 import httpx
 from pydantic import BaseModel, ValidationError
@@ -96,7 +96,7 @@ class DeepSeekProvider(LLMProvider):
     - LLM CANNOT directly trigger trading execution
     """
 
-    def __init__(self, config: Optional[DeepSeekConfig] = None):
+    def __init__(self, config: DeepSeekConfig | None = None):
         """
         Initialize DeepSeek provider.
 
@@ -126,8 +126,8 @@ class DeepSeekProvider(LLMProvider):
         self,
         prompt: str,
         response_schema: type[T],
-        timeout_seconds: Optional[float] = None,
-        max_retries: Optional[int] = None,
+        timeout_seconds: float | None = None,
+        max_retries: int | None = None,
     ) -> LLMResponse:
         """
         Analyze prompt using DeepSeek API.
@@ -154,7 +154,7 @@ class DeepSeekProvider(LLMProvider):
         timeout = timeout_seconds or self.config.timeout_seconds
         retries = max_retries if max_retries is not None else self.config.max_retries
 
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
 
         for attempt in range(retries + 1):
             try:
@@ -287,17 +287,17 @@ class DeepSeekProvider(LLMProvider):
                 # Parse and validate JSON
                 return self._parse_response(content, response_schema, latency)
 
-        except httpx.TimeoutException:
+        except httpx.TimeoutException as e:
             raise LLMTimeout(
                 message=f"DeepSeek API request timed out after {timeout_seconds}s",
                 provider="deepseek",
-            )
+            ) from e
 
         except httpx.ConnectError as e:
             raise LLMConnectionError(
                 message=f"Failed to connect to DeepSeek API: {e}",
                 provider="deepseek",
-            )
+            ) from e
 
     def _build_system_prompt(self, response_schema: type[T]) -> str:
         """Build system prompt with schema requirements"""
@@ -339,7 +339,7 @@ class DeepSeekProvider(LLMProvider):
                 message=f"Invalid JSON from DeepSeek: {e}",
                 provider="deepseek",
                 raw_output=content,
-            )
+            ) from e
 
         # Check for forbidden trading fields (JSON keys only)
         has_forbidden, forbidden_fields = check_forbidden_trading_fields_in_keys(data)
@@ -358,7 +358,7 @@ class DeepSeekProvider(LLMProvider):
                 message=f"Schema validation failed: {e}",
                 provider="deepseek",
                 raw_output=content,
-            )
+            ) from e
 
         # Get confidence from parsed output
         confidence = getattr(parsed, "confidence", 0.8)

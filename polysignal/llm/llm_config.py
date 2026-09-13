@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import os
 from enum import Enum
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -67,7 +67,7 @@ class DeepSeekConfig(BaseModel):
     # JSON mode support (DeepSeek supports response_format)
     supports_json_mode: bool = Field(default=True)
 
-    def get_api_key(self) -> Optional[str]:
+    def get_api_key(self) -> str | None:
         """Get API key from environment variable"""
         return os.environ.get("DEEPSEEK_API_KEY")
 
@@ -111,7 +111,7 @@ class GLMConfig(BaseModel):
     # JSON mode support (GLM may not support response_format, use prompt constraint)
     supports_json_mode: bool = Field(default=False)
 
-    def get_api_key(self) -> Optional[str]:
+    def get_api_key(self) -> str | None:
         """Get API key from environment variable (ZAI_API_KEY preferred, GLM_API_KEY fallback)"""
         # ZAI_API_KEY takes precedence
         zai_key = os.environ.get("ZAI_API_KEY")
@@ -172,7 +172,7 @@ class SenseNovaConfig(BaseModel):
     max_tokens: int = Field(default=2000, ge=100, le=8000)
     supports_json_mode: bool = Field(default=False)
 
-    def get_api_key(self) -> Optional[str]:
+    def get_api_key(self) -> str | None:
         """Get API key from environment variable"""
         return os.environ.get("SENSENOVA_API_KEY")
 
@@ -205,7 +205,7 @@ class XFyunAnthropicConfig(BaseModel):
     max_tokens: int = Field(default=2000, ge=100, le=8000)
     supports_json_mode: bool = Field(default=False)
 
-    def get_api_key(self) -> Optional[str]:
+    def get_api_key(self) -> str | None:
         """Get API key from environment variable"""
         return os.environ.get("XFYUN_API_KEY")
 
@@ -348,7 +348,7 @@ class LLMConfig(BaseModel):
         return self.get_effective_provider() == LLMProviderType.MOCK
 
 
-def load_llm_config(config_path: Optional[str] = None) -> LLMConfig:
+def load_llm_config(config_path: str | None = None) -> LLMConfig:
     """
     Load LLM configuration from YAML file.
 
@@ -365,7 +365,7 @@ def load_llm_config(config_path: Optional[str] = None) -> LLMConfig:
         config_path = "config/llm.yaml"
 
     try:
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             data = yaml.safe_load(f) or {}
 
         return LLMConfig.model_validate(data)

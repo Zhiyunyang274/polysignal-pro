@@ -7,8 +7,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import asdict, dataclass, field
-from typing import Any, Optional
-
+from typing import Any
 
 TRADABLE_SCORE_DISCLAIMER = (
     "tradable_score is a research/shadow priority score, not a trading signal."
@@ -121,8 +120,8 @@ class TradableCandidateScorer:
 class TradableCandidateBuilder:
     def __init__(
         self,
-        config: Optional[TradableCandidateBuilderConfig] = None,
-        scorer: Optional[TradableCandidateScorer] = None,
+        config: TradableCandidateBuilderConfig | None = None,
+        scorer: TradableCandidateScorer | None = None,
     ):
         self.config = config or TradableCandidateBuilderConfig()
         self.scorer = scorer or TradableCandidateScorer()
@@ -136,8 +135,8 @@ class TradableCandidateBuilder:
         avoid_rows: list[dict[str, Any]],
         trajectory_items: list[dict[str, Any]],
         control_group_rows: list[dict[str, Any]],
-        alpha_validation_rows: Optional[list[dict[str, Any]]] = None,
-        watchlist_validation_rows: Optional[list[dict[str, Any]]] = None,
+        alpha_validation_rows: list[dict[str, Any]] | None = None,
+        watchlist_validation_rows: list[dict[str, Any]] | None = None,
     ) -> list[TradableCandidate]:
         self.exclusion_summary = Counter()
         self.considered_count = 0

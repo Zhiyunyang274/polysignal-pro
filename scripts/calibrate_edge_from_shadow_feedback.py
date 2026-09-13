@@ -18,10 +18,9 @@ from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 from statistics import mean
-from typing import Any, Optional
+from typing import Any
 
 import yaml
-
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -56,7 +55,7 @@ DATASET_FIELDS = [
 ]
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Calibrate edge model from closed shadow PnL")
     parser.add_argument("--runs_dir", type=str, default="runs")
     parser.add_argument("--shadow_dir", type=str, default="runs/shadow")
@@ -75,7 +74,7 @@ def safe_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
-def optional_float(value: Any) -> Optional[float]:
+def optional_float(value: Any) -> float | None:
     if value in (None, ""):
         return None
     try:
@@ -88,7 +87,7 @@ def load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
     try:
-        with open(path, "r") as f:
+        with open(path) as f:
             data = yaml.safe_load(f) or {}
     except OSError:
         return {}
@@ -134,7 +133,7 @@ def verify_safety(
     }
 
 
-def pearson(xs: list[float], ys: list[float]) -> Optional[float]:
+def pearson(xs: list[float], ys: list[float]) -> float | None:
     if len(xs) < 2 or len(xs) != len(ys):
         return None
     mean_x = mean(xs)
@@ -145,7 +144,7 @@ def pearson(xs: list[float], ys: list[float]) -> Optional[float]:
     denom_y = math.sqrt(sum(y * y for y in dy))
     if denom_x == 0 or denom_y == 0:
         return None
-    return sum(x * y for x, y in zip(dx, dy)) / (denom_x * denom_y)
+    return sum(x * y for x, y in zip(dx, dy, strict=False)) / (denom_x * denom_y)
 
 
 def candidate_key(row: dict[str, Any]) -> tuple[str, str, str]:
@@ -404,7 +403,7 @@ def summarize(dataset: list[dict[str, Any]], high_confidence_threshold: float) -
     return summary
 
 
-def format_corr(value: Optional[float]) -> str:
+def format_corr(value: float | None) -> str:
     return "insufficient_data" if value is None else f"{value:.6f}"
 
 
@@ -512,7 +511,7 @@ def run(args: argparse.Namespace) -> int:
     return 0
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     return run(parse_args(argv))
 
 

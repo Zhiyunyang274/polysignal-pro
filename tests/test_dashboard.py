@@ -23,7 +23,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
@@ -550,7 +550,7 @@ class TestLiveTradingDisabled:
             try:
                 import yaml
 
-                with open(risk_yaml, "r") as f:
+                with open(risk_yaml) as f:
                     config = yaml.safe_load(f) or {}
                 assert config.get("live_trading_enabled") is False
             except ImportError:
@@ -562,7 +562,7 @@ class TestLiveTradingDisabled:
             try:
                 import yaml
 
-                with open(risk_yaml, "r") as f:
+                with open(risk_yaml) as f:
                     config = yaml.safe_load(f) or {}
                 assert config.get("allow_auto_execution") is False
             except ImportError:

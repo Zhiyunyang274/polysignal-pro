@@ -423,7 +423,7 @@ if signal.side == SignalSide.BOTH:
 
 ### 状态
 
-Accepted
+Superseded by ADR-026 (2026-09-11)
 
 ### 背景
 
@@ -1067,3 +1067,113 @@ rate=null，status=`insufficient_forward_data`。因此 historical barrier integ
 该 cohort 不证明 edge、expectancy 或 profitability；`supports_tiny_live=false`，
 `tiny_live_recommendation=NO`。本决策不增加认证、签名、密钥访问或执行能力，live trading
 继续默认关闭。
+
+---
+
+## ADR-026：运行时下限提升为 Python 3.11（取代 ADR-012）
+
+### 状态
+
+Accepted (2026-09-11)
+
+### 背景
+
+ADR-012 决定支持 Python 3.9+，前提是全库使用 `Optional[X]` 而非 `X | None`。该前提已在
+代码演进中失效：`polysignal/execution/paper_trader.py`、`polysignal/shadow/*` 等模块在类体
+中直接使用 `X | None`（PEP 604），该表达式在类定义时急切求值。2026-09-11 实测：在
+Python 3.9.6 下 `python3 -m pytest` 收集即失败（`TypeError: unsupported operand type(s)
+for |: 'ModelMetaclass' and 'NoneType'`），3.9 兼容事实上已不存在。项目实际运行环境为
+uv 管理的 Python 3.11.15 venv（CONTEXT.md 历史基线均基于此）。
+
+### 决策
+
+* `pyproject.toml` 的 `requires-python` 从 `>=3.9` 修正为 `>=3.11`
+* classifiers 移除 3.9/3.10；black target-version 改为 `py311`；mypy `python_version` 改为 `3.11`
+* 文档与 CI 指引统一声明：本项目只能通过 `uv run`（或等价的 3.11+ 解释器）执行
+
+### 影响
+
+优点：
+
+* 工具链声明与代码现实一致，消除 3.9/3.10 用户的必然报错
+* 类体中的 PEP 604 注解、`Self` 类型等 3.11 特性可正常使用
+
+代价：
+
+* 理论上放弃 3.9/3.10 兼容；该兼容在实测中早已不可用，因此无实际损失
+
+---
+
+## ADR-027：历史 Barrier K 线证据多源化（Binance 主源 + Coinbase 回退）
+
+### 状态
+
+Accepted (2026-09-12，用户批准的 SPEC 级数据源扩展)
+
+### 背景
+
+v8 discovery（2026-09-12）的 46 个候选中 45 个因 Binance 返回 HTTP 451（地域封锁）
+无法取得历史 barrier K 线证据（v7 时期同环境为 43/44 verified），导致 0 仓位创建、
+cohort 扩张停滞（3 clusters < 5 的 expectancy 前置无法推进）。v7 契约要求 barrier
+证据使用 1 分钟 OHLC 且来源为 allowlist 主机；Binance 是唯一的 K 线源，构成单点依赖。
+
+### 决策
+
+1. `CoinbaseHistoricalCandleClient`：Coinbase Exchange 公共 candles API
+   （`api.exchange.coinbase.com/products/{pair}/candles`，granularity=60），
+   与 Binance 客户端同一 `fetch_klines` 契约与全部验证规则（分钟对齐、连续性、
+   单调性、行内范围）；symbol 映射 BTC→BTC-USD / ETH→ETH-USD / SOL→SOL-USD。
+2. `MultiSourceHistoricalKlineClient`：Binance 主源，仅当失败为源级
+   （HTTP 4xx/5xx、超时、无效响应）时回退 Coinbase；范围级结果
+   （partial/contiguity）不触发回退（数据属性在两源等价，保留主源结果可审计）。
+3. 验证链 source-aware 化：`VERIFIED_HISTORICAL_BARRIER_SOURCES` 注册表 +
+   按源 locator/symbol 校验（BTC-USD 等 pair 形式）；证据材料记录实际服务的
+   source/locator；merged preload/tail 校验要求同一非空 verified source。
+4. **字段差异披露**：Coinbase 不提供 quote volume / trade counts，这些列持久化为
+   "0"（快照保持 Binance 行格式统一；barrier 验证只消费 open/high/low/close）。
+5. **基差披露**：Coinbase 为 USD 计价，Binance 为 USDT——阈值触碰验证引入
+   USD/USDT 基差近似（BTC/ETH/SOL 现货基差通常 <0.1%），source 字段已记录
+   供审计者复核边界案例。
+
+### 影响
+
+优点：消除单点地域依赖，cohort 扩张可继续；证据 provenance 记录真实来源。
+代价：跨源基差近似（已披露）；Coinbase 300 candle/页的额外分页。
+维持不变：fail-closed 全部门禁、240 分钟水平线、exact-minute batch entry、
+`supports_tiny_live` 判定逻辑。
+
+---
+
+## ADR-028：Crypto Threshold 资产宇宙扩展（+XRP/DOGE/BNB/LINK）
+
+### 状态
+
+Accepted (2026-09-12，用户批准；达成 ≥5 独立 cluster expectancy 前置的必要路径)
+
+### 背景
+
+Cluster 契约键为 (asset, expiry, contract_kind)。当前市场池 46 个候选全部是
+2026-12-31 到期的 touch 市场，cluster 上限恒为 3（BTC/ETH/SOL），expectancy 评估
+所需的 ≥5 独立 cluster 在现有资产宇宙内**数学上不可达**。对 v10 Gamma 快照
+（2100 unique markets）的离线全量扫描发现：XRP×14、DOGE×12、BNB×11、LINK×8 个
+阈值市场，且抽样核验其 resolutionSource 全部为
+`https://www.binance.com/en/trade/{XRP|DOGE|BNB|LINK}_USDT` ——已在 allowlist
+host 上、且与现有 `_BINANCE_PATH_RE` 模式完全同构，仅资产组缺失。
+
+### 决策
+
+资产表驱动扩展（4 处，全为纯数据表）：
+
+1. discovery：`ASSET_ALIASES` / `BINANCE_SYMBOLS` / `ANNUAL_VOL_PROXY` 增加四资产
+   （vol proxy 值为文档化的量级估计：XRP 0.90 / DOGE 1.10 / BNB 0.70 / LINK 0.95）
+2. resolution adapter：`_BINANCE_PATH_RE` 资产组扩展；`_ASSET_SOURCE_ALIASES` 同步
+3. barrier 模块：`BINANCE_SYMBOLS` / `COINBASE_SYMBOLS` 同步（Coinbase 四资产
+   pair 均实际存在：XRP-USD/DOGE-USD/BNB-USD/LINK-USD）
+
+### 影响
+
+优点：cluster 上限从 3 → 7（BTC/ETH/SOL/XRP/DOGE/BNB/LINK × 同一到期 × touch），
+expectancy 前置在数学上可达。
+代价：新资产的 vol proxy 是量级估计（已文档化，非精确校准）；DOGE 基准价数量级
+小（$0.2），阈值解析需处理小数精度（parser v4 已支持任意精度阈值）。
+维持不变：全部 fail-closed 门、resolution/expiry/barrier 验证语义、cluster 契约键。

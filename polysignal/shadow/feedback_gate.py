@@ -9,11 +9,18 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
-
 PROBABILITY_EDGE_TYPES = {
     "price_dislocation_probability_v1",
     "price_dislocation_probability_v2",
 }
+
+# Iteration 026: crypto_price_threshold_v1 joins the feedback-gated set after
+# 16 closed trades across 6 independent clusters produced 1 win (6.2%) and
+# negative average returns in every cohort (v7_reeval/v10/v11).
+CRYPTO_PRICE_THRESHOLD_EDGE_TYPES = {
+    "crypto_price_threshold_v1",
+}
+GATED_EDGE_TYPES = PROBABILITY_EDGE_TYPES | CRYPTO_PRICE_THRESHOLD_EDGE_TYPES
 
 
 @dataclass
@@ -92,7 +99,7 @@ def evaluate_edge_type_gate(
     """Evaluate whether an edge type may emit executable shadow entries."""
 
     cfg = config or FeedbackGateConfig()
-    if edge_type not in PROBABILITY_EDGE_TYPES:
+    if edge_type not in GATED_EDGE_TYPES:
         return EdgeTypeGate(
             edge_type=edge_type,
             status="enabled",

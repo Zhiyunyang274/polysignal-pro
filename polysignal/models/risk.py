@@ -7,13 +7,15 @@ IMPORTANT: RiskAction is the action to take, RiskDecision is the decision result
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from polysignal.utils.time import utc_now
 
-class RiskAction(str, Enum):
+
+class RiskAction(StrEnum):
     """Risk Governor action decision"""
     IGNORE = "ignore"                    # score < 70
     LOG_ONLY = "log_only"               # 70 <= score < 80
@@ -22,9 +24,6 @@ class RiskAction(str, Enum):
     MANUAL_REVIEW = "manual_review"     # 90 <= score < 95 (with flags)
     LIVE_EXECUTE = "live_execute"       # score >= 95 AND explicitly enabled
     HARD_REJECT = "hard_reject"         # Hard rejection conditions met
-
-    def __str__(self) -> str:
-        return self.value
 
 
 class RiskContext(BaseModel):
@@ -55,7 +54,7 @@ class RiskContext(BaseModel):
 class RiskDecision(BaseModel):
     """Risk Governor decision result"""
     decision_id: str = Field(default_factory=lambda: str(uuid4()))
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=utc_now)
     signal_id: str
 
     # Decision

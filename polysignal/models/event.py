@@ -8,14 +8,16 @@ It CANNOT directly trigger trading execution.
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
-from typing import Literal, Optional
+from enum import StrEnum
+from typing import Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from polysignal.utils.time import utc_now
 
-class SuggestedMode(str, Enum):
+
+class SuggestedMode(StrEnum):
     """
     Suggested mode from Event Intelligence Engine.
 
@@ -29,9 +31,6 @@ class SuggestedMode(str, Enum):
     ALERT_ONLY = "alert_only"      # Alert but no action
     MANUAL_REVIEW = "manual_review"  # Requires human review
     AVOID = "avoid"                # Market should be avoided
-
-    def __str__(self) -> str:
-        return self.value
 
 
 class EventAssessment(BaseModel):
@@ -48,7 +47,7 @@ class EventAssessment(BaseModel):
     # Identification
     assessment_id: str = Field(default_factory=lambda: str(uuid4()))
     market_id: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=utc_now)
 
     # Core scores (0-100)
     event_score: float = Field(50.0, ge=0, le=100, description="Overall event signal score")
@@ -129,17 +128,17 @@ class LLMResponse(BaseModel):
     success: bool = Field(True)
 
     # Parsed output (validated against schema)
-    parsed_output: Optional[BaseModel] = None
+    parsed_output: BaseModel | None = None
 
     # Raw output (for debugging)
-    raw_output: Optional[str] = None
+    raw_output: str | None = None
 
     # Confidence (0-1)
     confidence: float = Field(0.5, ge=0, le=1)
 
     # Error information
-    error: Optional[str] = None
-    error_type: Optional[str] = None  # "invalid_json", "schema_error", "timeout", "llm_error"
+    error: str | None = None
+    error_type: str | None = None  # "invalid_json", "schema_error", "timeout", "llm_error"
 
     # Retry count
     retry_count: int = Field(0, ge=0)
@@ -155,7 +154,7 @@ class LLMResponse(BaseModel):
     forbidden_fields: list[str] = Field(default_factory=list)
 
     # Fallback info (set by ProviderRouter when fallback occurs)
-    fallback_from: Optional[str] = Field(None, description="Original provider before fallback")
+    fallback_from: str | None = Field(None, description="Original provider before fallback")
 
 
 # Forbidden trading fields that LLM output must NOT contain

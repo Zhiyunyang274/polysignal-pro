@@ -86,6 +86,8 @@ def apply_excursions(
             value = obs.get("no_best_bid", obs.get("price"))
         else:
             value = obs.get("yes_best_bid", obs.get("price"))
+        if value is None:
+            continue
         try:
             price = float(value)
         except (TypeError, ValueError):

@@ -8,14 +8,15 @@ Tests the Telegram action handler with:
 - Database logging
 """
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from polysignal.interface.telegram_client import TelegramClient
 from polysignal.interface.telegram_handler import TelegramActionHandler
-from polysignal.models.telegram import TelegramAction, TelegramActionResult
+from polysignal.models.telegram import TelegramActionResult
 from polysignal.storage.database import Database
-from tests.fixtures.telegram import create_test_signal, create_test_risk_decision
+from tests.fixtures.telegram import create_test_risk_decision, create_test_signal
 
 
 class TestTelegramActionHandler:

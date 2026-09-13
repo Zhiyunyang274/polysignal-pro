@@ -42,8 +42,81 @@ PolySignal Pro 是一个 7×24h 运行的 Polymarket prediction market intellige
 
 ```text
 uv run pytest -q
-1755 passed in 264.97s (Step 12 v7 full regression; exit code 0)
+1873 passed in 267.62s (2026-09-12 full regression; exit code 0)
+  = Step 12 v7 baseline 1755 + Iterations 001-020 (+118 tests)
+    + Iteration 001 (22 AccountState) + 002 (36 SimBroker/metrics)
+    + 003 (11 replay) + 004 (10 regime stress) + 005 (7 A/B) + 006 (15 risk guards)
 Step 12 scoped tests: 238 passed
+uv run ruff check .    -> All checks passed (1786 -> 0; accepted items declared)
+uv run mypy polysignal -> Success: 0 errors in 93 files (no exemptions)
+Requires-python: >=3.11 (ADR-026; bare python3 3.9 fails at import — always use uv run)
+Iteration log: docs/iteration_log.md (Iterations 000-023 complete, in order)
+  022b    A/B five-env precheck for crypto_price_threshold_v1 entry style:
+           barrier-proximity KEEP_ELIGIBLE (all 5 rules pass; synthetic
+           selectivity advantage, not a real-edge profitability claim)
+  021      v7 cohort mature re-eval done (read-only poll 11/11, 0 errors);
+           6 closed / 5 contract-rejected (stale forward book); 3 clusters < 5
+           required -> expectancy still blocked; tiny_live=NO
+  023-024  ADR-027 multi-source klines + ADR-028 asset universe expansion
+           (+XRP/DOGE/BNB/LINK; parser $-anchored any-magnitude fix): v11 cohort
+           8 positions / 5 clusters created; combined 6 independent clusters
+           (>=5 expectancy precondition met for the first time); Phase B polls
+           scheduled via automation (v10+v11 after 19:28 UTC maturity)
+  022      v8 cohort expansion externally blocked: Binance HTTP 451 geo-block
+           -> 0/46 historical barrier verified -> 0 positions created (contract
+           held under external pressure); retry after access restoration
+  026      crypto_price_threshold_v1 QUARANTINED (16 closed across 6 clusters,
+           1 win / 6.2% / all-negative returns; gate: 5 hard-fail reasons)
+  023      ADR-027 multi-source klines (Binance primary + Coinbase fallback, user
+           approved): v10 discovery 45/46 verified_full_coverage, cohort created
+           (4 positions / 2 clusters, entry 13:14:00Z); Phase B poll scheduled
+           17:25 UTC via automation
+  024-025  ADR-028 asset expansion (+XRP/DOGE/BNB/LINK) + parser $-anchored fix:
+           v11 cohort 8 positions / 5 clusters; Phase B done for v7+v10+v11 ->
+           MERGED: 6 independent clusters (>=5 met) / 16 closed (15 losses, 1
+           win, 6.2% win rate, merged PnL -2.25) -> verdict SAMPLE_INSUFFICIENT
+           (<20 closed); all evidence negative -> v1 quarantine proposed
+  (000-020 details below)
+  001 AccountState ledger done (loss-limit breakers now live)
+  002 SimBroker + performance metrics done (Phase 3 framework)
+  003 real-data replay done; cross-validated with shadow PnL (-240.84 USDT / 10 trades)
+  004 regime stress test done: 5 environments, all invariants PASS, breakers verified
+  005 A/B framework done: 5-rule conservative verdict; demo REJECT via drawdown rule
+  006 wired guards done: exposure caps are hard rejects (strategy-level cap new),
+      liquidity guard is the single source for spread/depth gates
+  007 run_paper.py split step 1 done: 3689 -> 2131 lines; watchlist/llm-sampling/
+      control-group/alpha-repeat verbatim-moved to polysignal/runner/ (mixin +
+      re-export, all existing imports unchanged)
+  008 ruff batch 1 done: 510 zero-semantic fixes (F401/I001/UP017/UP015/F541/UP037);
+      dashboard read-only open() modes kept explicit (security gate > lint)
+  009 ruff batch 2 done: UP045 full PEP604 migration (547) + 74 linked imports;
+      E501 accepted as declared style debt (pyproject) — actionable lint ~200 items
+  010-012 done: RunConfig/RunStatistics -> runner/ (run_paper.py 3689->1724, -53%);
+      F841 sweep found+fixed duplicate engine analysis in main.py; B904 explicit
+      exception chaining 24->0
+  013-014 done: UP042 behavior analysis — 5 enums migrated to StrEnum (custom
+      __str__=value, behavior identical), 25 intentionally kept (declared in
+      pyproject); F821 sweep caught 3 REAL bug classes: my own Iteration-012
+      missing `as e` on timeout paths (NameError on first real timeout),
+      dormant aiosqlite.Optional + missing LLMConfig import. All fixed.
+  015-016  SIM115/B905/SIM102 judged; lint zero; database silent-failure removed
+  017      full-repo mypy zero (event engine narrowing, shadow monkeypatch promoted,
+           ws connection typed, provider router casts)
+  018      models layer timezone-aware (D8 partial): utc_now/ensure_utc helpers,
+           wallet chase chain + lifecycle ensure_utc normalization
+  019      D12 resolved: CircuitBreaker consumes config & wired into main.py;
+           llm Config single-source (provider re-exports llm_config);
+           run_paper.py 1724->388 lines (PaperTradingRunner -> runner/)
+  020      paper_runner typing debt cleared (mypy exemption removed); fixed
+           orderbook.spread bug + report None-crash; db.require_connection()
+Risk policy: docs/risk_policy.md §3.1 (Wired Guards); runner duty: feed real
+  account state via AccountState.risk_context_fields
+System review: docs/system_review_2026-09-11.md (R1-R8; D3/D4/D6-step1/D9/D10 resolved)
+```
+
+历史测试记录：
+
+```text
 Ruff lint/format, mypy, py_compile and uv lock checks passed
 Trading MVP Step 10-12 tests: crypto threshold discovery and corrected shadow PnL
 Trading MVP Step 6 targeted tests: tests/test_multi_edge_discovery.py, tests/test_shadow_trading.py, tests/test_shadow_performance_review.py updated

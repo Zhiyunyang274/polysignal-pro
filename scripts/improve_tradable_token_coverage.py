@@ -15,7 +15,7 @@ import csv
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 
@@ -28,11 +28,10 @@ from scripts.backfill_shadow_token_ids import (
     valid_token_id,
 )
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Improve token coverage for tradable candidates")
     parser.add_argument("--runs_dir", type=str, default="runs")
     parser.add_argument("--shadow_dir", type=str, default="runs/shadow")
@@ -47,7 +46,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 def load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    with open(path, "r") as f:
+    with open(path) as f:
         data = yaml.safe_load(f) or {}
     return data if isinstance(data, dict) else {}
 
@@ -212,7 +211,7 @@ def write_rows_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fields: list[str] = []
     for row in rows:
-        for key in row.keys():
+        for key in row:
             if key not in fields:
                 fields.append(key)
     for key in ["yes_token_id", "no_token_id", "token_id_source"]:
@@ -274,7 +273,7 @@ def write_report(path: Path, summary: dict[str, Any]) -> None:
 
 def improve_coverage(
     args: argparse.Namespace,
-    api_client: Optional[Any] = None,
+    api_client: Any | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     started = datetime.utcnow()
     runs_dir = Path(args.runs_dir)
@@ -339,7 +338,7 @@ def print_summary(summary: dict[str, Any], dry_run: bool) -> None:
     print(f"tiny_live_recommendation: {summary.get('tiny_live_recommendation', 'NO')}")
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     summary, rows = improve_coverage(args)
     print_summary(summary, args.dry_run)

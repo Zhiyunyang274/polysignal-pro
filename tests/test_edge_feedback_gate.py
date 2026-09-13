@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import ast
+import json
 from pathlib import Path
 
+import pytest
 import yaml
 
 from polysignal.shadow.entry_filter import EntryDecision, EntryFilterConfig, ShadowEntryFilter
 from polysignal.shadow.feedback_gate import evaluate_edge_type_gate
 from polysignal.shadow.models import CandidateSnapshot, ShadowSide
-
 
 NEGATIVE_SUMMARY = {
     "edge_types_analyzed": ["price_dislocation_probability_v2"],
@@ -157,3 +158,44 @@ def test_live_trading_enabled_false():
     assert risk["live_trading_enabled"] is False
     assert risk["allow_auto_execution"] is False
     assert risk["paper_trading_enabled"] is True
+
+
+class TestCryptoPriceThresholdGate:
+    """Iteration 026: crypto_price_threshold_v1 joins the gated set after the
+    v7+v10+v11 merged evidence (16 closed, 1 win, all cohorts negative)."""
+
+    def test_crypto_threshold_edge_is_gated(self):
+        from polysignal.shadow.feedback_gate import (
+            CRYPTO_PRICE_THRESHOLD_EDGE_TYPES,
+            GATED_EDGE_TYPES,
+        )
+
+        assert "crypto_price_threshold_v1" in GATED_EDGE_TYPES
+        assert "crypto_price_threshold_v1" in CRYPTO_PRICE_THRESHOLD_EDGE_TYPES
+
+    def test_real_calibration_metrics_quarantine(self):
+        summary = json.load(
+            open("runs/crypto_threshold_feedback_calibration_summary.json", encoding="utf-8")
+        )
+        gate = evaluate_edge_type_gate("crypto_price_threshold_v1", summary)
+        assert gate.status == "quarantined"
+        assert gate.gate_passed is False
+        assert gate.trades_analyzed == 16
+        assert gate.win_rate == pytest.approx(0.0625)
+
+    def test_uncorrelated_summary_quarantines_too(self):
+        summary = {
+            "edge_type_performance": {
+                "crypto_price_threshold_v1": {
+                    "trades": 16,
+                    "closed_trades": 16,
+                    "win_rate": 0.0625,
+                    "average_return": -0.14,
+                }
+            },
+            "edge_types_analyzed": ["crypto_price_threshold_v1"],
+            "false_positive_count": 15,
+            "high_confidence_loss_count": 15,
+        }
+        gate = evaluate_edge_type_gate("crypto_price_threshold_v1", summary)
+        assert gate.status == "quarantined"

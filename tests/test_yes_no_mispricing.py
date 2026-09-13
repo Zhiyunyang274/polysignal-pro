@@ -4,16 +4,16 @@ Tests for YES/NO Mispricing Strategy
 
 import pytest
 
-from polysignal.models.signal import SignalSide
 from polysignal.models.market import MarketCategory
-from polysignal.strategies.yes_no_mispricing import YesNoMispricingStrategy
+from polysignal.models.signal import SignalSide
 from polysignal.strategies.base import StrategyContext
+from polysignal.strategies.yes_no_mispricing import YesNoMispricingStrategy
 from tests.fixtures.markets import create_mock_market
 from tests.fixtures.orderbooks import (
-    create_mock_orderbook,
     create_mispricing_orderbook,
-    create_wide_spread_orderbook,
+    create_mock_orderbook,
     create_thin_depth_orderbook,
+    create_wide_spread_orderbook,
 )
 
 

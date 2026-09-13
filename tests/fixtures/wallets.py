@@ -6,16 +6,14 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
+from polysignal.ingestion.mock_wallet_provider import MOCK_WALLET_ADDRESSES
+from polysignal.models.market import Market, MarketCategory, MarketStatus
 from polysignal.models.wallet import (
-    WalletActivity,
-    WalletActivityHistory,
-    WalletProfile,
     WalletMarketActivity,
+    WalletProfile,
     WalletSpecialization,
     WatchlistEntry,
 )
-from polysignal.models.market import Market, MarketCategory, MarketStatus
-from polysignal.ingestion.mock_wallet_provider import MOCK_WALLET_ADDRESSES
 
 
 def create_mock_watchlist() -> list[WatchlistEntry]:

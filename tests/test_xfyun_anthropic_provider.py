@@ -6,14 +6,10 @@ IMPORTANT: These tests mock HTTP requests, NOT real API calls.
 
 import asyncio
 import json
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from polysignal.llm.xfyun_anthropic_provider import (
-    XFyunAnthropicProvider,
-    XFyunAnthropicConfig,
-    check_forbidden_trading_fields_in_keys,
-)
+import pytest
+
 from polysignal.llm.llm_errors import (
     LLMAuthenticationError,
     LLMConnectionError,
@@ -22,9 +18,13 @@ from polysignal.llm.llm_errors import (
     LLMProviderNotConfigured,
     LLMRateLimit,
     LLMSchemaError,
-    LLMTimeout,
 )
 from polysignal.llm.schemas import EventAnalysisSchema
+from polysignal.llm.xfyun_anthropic_provider import (
+    XFyunAnthropicConfig,
+    XFyunAnthropicProvider,
+    check_forbidden_trading_fields_in_keys,
+)
 
 
 class TestXFyunAnthropicConfig:

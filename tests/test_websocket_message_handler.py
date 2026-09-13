@@ -2,11 +2,10 @@
 Tests for WebSocket Message Handler
 """
 
-import pytest
 
 from polysignal.ingestion.websocket_message_handler import (
-    WSMessageHandler,
     WSMessage,
+    WSMessageHandler,
 )
 
 

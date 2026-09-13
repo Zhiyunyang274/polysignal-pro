@@ -15,11 +15,10 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from statistics import mean, pstdev
-from typing import Any, Optional
+from typing import Any
 
 from polysignal.shadow.cross_market_convergence import CrossMarketConvergenceObservation
 from scripts.discover_executable_edges import verify_safety
-
 
 FEATURE_FIELDS = [
     "group_id",
@@ -52,7 +51,7 @@ FEATURE_FIELDS = [
 ]
 
 
-def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Analyze cross-market convergence observations")
     parser.add_argument("--runs_dir", type=str, default="runs")
     parser.add_argument("--output_dir", type=str, default="runs")
@@ -83,7 +82,7 @@ def _pair_key(obs: CrossMarketConvergenceObservation) -> tuple[str, str, str, st
     return (obs.group_id, obs.market_id, obs.reference_market_id, obs.side.upper())
 
 
-def _parse_time(value: str) -> Optional[datetime]:
+def _parse_time(value: str) -> datetime | None:
     try:
         return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except ValueError:
@@ -92,7 +91,7 @@ def _parse_time(value: str) -> Optional[datetime]:
 
 def _transition_counts(gaps: list[float], epsilon: float) -> tuple[int, int, int]:
     stable = widening = shrinking = 0
-    for prev, cur in zip(gaps, gaps[1:]):
+    for prev, cur in zip(gaps, gaps[1:], strict=False):
         delta = cur - prev
         if abs(delta) <= epsilon:
             stable += 1
@@ -334,7 +333,7 @@ def print_summary(summary: dict[str, Any], dry_run: bool) -> None:
     print(f"tiny_live_recommendation: {summary.get('tiny_live_recommendation', 'NO')}")
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     features, summary = analyze_dataset(args)
     print_summary(summary, args.dry_run)

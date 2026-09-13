@@ -6,7 +6,7 @@ LLM CANNOT directly trigger trading execution.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 from pydantic import BaseModel
 

@@ -16,11 +16,9 @@ Coverage:
 - No private key requirement
 """
 
-import asyncio
 import json
 import os
 import sys
-import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -36,7 +34,6 @@ from scripts.run_paper import (
     RunStatistics,
     parse_args,
 )
-
 
 # =============================================================================
 # Fixtures

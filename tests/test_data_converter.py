@@ -4,7 +4,6 @@ Tests for Data Converter
 Tests the conversion of Polymarket API data to internal models.
 """
 
-import pytest
 
 from polysignal.ingestion.api_types import (
     CLOBOrderbook,
@@ -15,9 +14,9 @@ from polysignal.ingestion.api_types import (
 from polysignal.ingestion.data_converter import DataConverter
 from polysignal.models.market import MarketCategory, MarketStatus
 from tests.fixtures.api_responses import (
-    create_gamma_market_response,
-    create_clob_orderbook_response,
     create_clob_orderbook_mispricing,
+    create_clob_orderbook_response,
+    create_gamma_market_response,
 )
 
 
