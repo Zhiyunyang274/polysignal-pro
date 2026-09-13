@@ -1220,9 +1220,9 @@ I will not modify:
 4. **合并判定**（cluster_expectancy 工具，v7_reeval + v10 + v11 三份 summary）：
    - total 23 / **closed 16** / insufficient 7
    - **独立 clusters：6（BTC/ETH/SOL/XRP/DOGE/BNB）——≥5 前置满足**
-   - **胜率：1/16 = 6.2%**（唯一赢仓在 v7 BTC）
-   - 合并 PnL（按 run 总额）：v7 -1.31 + v10 -0.29 + v11 -0.65 = **-2.25**
-   - **VERDICT: SAMPLE_INSUFFICIENT**（closed 16 < 20）——"keep expanding cohorts"
+   - **胜率：1/17 = 5.9%**（唯一赢仓在 v7 BTC；v11 补充采集后 7 closed）
+   - 合并 PnL（按 run 总额）：v7 -1.31 + v10 -0.29 + v11 -0.66 = **-2.26**
+   - **VERDICT: SAMPLE_INSUFFICIENT**（closed 17 < 20）——"keep expanding cohorts"
 
 **合并 expectancy 诚实结论**：
 1. **cluster 前置首次达成**（6 ≥ 5）：ADR-027（多源 K 线）+ ADR-028（资产扩展）
