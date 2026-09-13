@@ -729,6 +729,14 @@ def detect_asset(text: str, assets: list[str]) -> tuple[str, float]:
     return "", 0.0
 
 
+def _is_ath_market(text: str) -> bool:
+    """Detect all-time-high titles that require external ATH data, not a
+    title-parsed threshold. (Iteration 028 fix: "December 31" in ATH titles
+    was previously parsed as a $30 threshold.)"""
+    normalized = text.lower()
+    return "all time high" in normalized or "all-time high" in normalized
+
+
 def parse_threshold_price(text: str) -> tuple[float, float]:
     """Extract the threshold price from a threshold-market title.
 
@@ -736,7 +744,10 @@ def parse_threshold_price(text: str) -> tuple[float, float]:
     DOGE $0.20 are as genuine as BTC $100,000). Bare numbers keep the
     historical >= $10 / year-band guards to avoid matching small counts or
     percentages in titles. (ADR-028 asset universe expansion.)
+    ATH titles are excluded (they require the previous ATH, not a title number).
     """
+    if _is_ath_market(text):
+        return 0.0, 0.0
     patterns = [
         # $-anchored: explicit price of any magnitude (XRP $0.80, BTC $100,000)
         r"(\$)\s*([0-9]+(?:,[0-9]{3})*(?:\.[0-9]+)?)\s*([kKmM]?)",

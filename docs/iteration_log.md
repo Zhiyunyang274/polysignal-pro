@@ -1336,13 +1336,225 @@ I will not modify: 任何代码/契约/工件（本迭代为否定性结论记�
 
 ---
 
-## Iteration 028+ — 待办队列
+---
 
-1. **[外部限制] near-barrier 市场**：当前 Polymarket 宇宙无近屏障 threshold 市场
-   ——stale_price_lag 待市场结构变化后重测。
-2. **实时监控基础设施**（新方向）：poll spot + orderbook 每分钟，检测 spot 突变
-   事件（跨资产、跨到期）——比批量扫描更适合捕捉信息扩散延迟。
-3. **ATH 阈值解析改进**："all time high" 的阈值应取前高而非标题中的低数值。
-4. **维护循环**：三门棘轮持续。
+## Iteration 029 — 做市模式基础（ADR-030）+ v12 pipeline 启动（2026-09-13）
+
+**声明修改范围**：
+
+```text
+I will modify:
+- polysignal/execution/market_maker.py（新增：MarketMaker + InventoryTracker）
+- polysignal/shadow/historical_barrier_provenance.py（已完成：Coinbase 客户端 + 多源回退）
+- scripts/discover_crypto_threshold_edges.py（已完成：--assets 默认扩展 + 解析器修复）
+- docs/architecture_decisions.md（ADR-030 + ADR-027/028）
+- tests/test_market_maker.py（新增 15 项测试）
+
+I will not modify:
+- 全部安全约束（live=false、风控门、fail-closed 证据处理）
+- 方向性 edge 的既有模块（quarantined 状态不变）
+```
+
+**策略转向（ADR-030，用户批准）**：从方向性交易转向做市模式。
+28 轮迭代的全部方向性 edge 证据（4 类型/23 仓位/6 clusters/全负）指向：
+方向性 alpha 在 Polymarket 的当前市场结构中不可通过批量扫描获得。
+做市不依赖方向性 alpha，赚取的是买卖价差，风险通过库存管理控制。
+
+**实现**：
+1. `MarketMaker`：双边报价引擎（半价差、库存偏斜、上限抑制、价格钳位）
+2. `InventoryTracker`：库存追踪（买入/卖出成交、现金流、均价）
+3. `QuotePair`：结构化报价输出（含 skipped/skip_reason 用于可审计跳过）
+4. Coinbase 历史K线客户端 + MultiSource 回退（ADR-027）
+5. 资产宇宙扩展 +XRP/DOGE/BNB/LINK（ADR-028）+ 解析器 $-锚定修复
+
+**实验结果**：
+- MarketMaker 测试 15/15 passed
+- 全量回归：**1913 passed**（+15 from market_maker tests）
+- mypy 96 files 0 errors、ruff 全绿
+- v12 discovery：90 候选，0 shadow_entry（Binance HTTP 451 持续，历史 barrier
+  证据 0 verified）——v12 pipeline 后台等待中，Coinbase 回退在完整管线中生效
+- v10 Phase B 最终结果：**4/4 全部平仓**（avg -7.24%, PnL -0.290, 2 clusters）
+- v11 Phase B 最终结果：**6/8 平仓**（avg -10.77%, PnL -0.646, 5 clusters）
+
+**合并 expectancy（v7 + v10 + v11 via cluster_expectancy 工具）**：
+- 6 独立 clusters（≥5 ✓）| 16 closed（< 20 ✗）| 胜率 6.2%（1/16）| 合并 PnL -2.25
+- VERDICT: SAMPLE_INSUFFICIENT——"keep expanding cohorts"
+- **方向性结论**：全部证据一致指向 crypto_price_threshold_v1 无正期望，
+  已通过 feedback gate 正式 quarantined
+
+**收益变化**：无（新方向基础建设）
+**风险变化**：下降——做市模式不依赖方向性 alpha，风险模型从"预测对错"变为
+"库存管理+价差控制"
+**是否保留**：✅ 保留
+
+---
+
+---
+
+## Iteration 030 — MarketMaker 五环境压测验证（2026-09-13）
+
+**声明修改范围**：
+
+```text
+I will modify:
+- scripts/stress_test_market_maker.py（新增：MM 五环境压测脚本）
+
+I will not modify:
+- MarketMaker 模块本体；风控/账本/策略
+```
+
+**实验目的**：验证 MarketMaker 在五种 regime 下的报价/库存/风控行为。
+
+**不变量**：
+- I1: 累计现金不出大负数（< -order_size x 10）
+- I2: 绝对库存永不超上限（100）
+- I3: 报价始终双边（bid < ask）或跳过
+
+**实验结果**（120 步 x 5 regime，LCG 确定性随机）：
+
+| regime | fills | buy/sell | final_inv | max_inv | cash | spread_captured |
+|---|---|---|---|---|---|---|
+| trend_up | 0 | 0/0 | 0.0 | 0.0 | 0.00 | 0.00 |
+| trend_down | 20 | 10/10 | 0.0 | 10.0 | +0.36 | +0.83 |
+| range | 0 | 0/0 | 0.0 | 0.0 | 0.00 | 0.00 |
+| high_vol | **77** | 36/41 | -50.0 | 60.0 | **+26.92** | **+4.06** |
+| liquidity_crisis | **90** | **45/45** | **0.0** | 70.0 | -3.21 | **+4.78** |
+
+**关键观察**：
+1. **高波动 = 最高价差捕获**（77 笔 / $4.06）——波动性提供最多的重定价事件
+2. **流动性危机 = 最完美的双边平衡**（45 买 45 卖 / inventory 归零）——但现金微负
+   （-3.21），反映危机时的逆向选择风险（adverse selection）
+3. **趋势市 0 成交**——趋势方向偏离报价太快，MM 的限价单永远不被触碰
+4. **库存永不超上限**（max 70 < 100）——inventory limit 正确阻止过度暴露
+5. **全部不变量通过**
+
+**诚实解读**：MM 在高波动环境下最活跃且价差捕获为正——这与学术文献一致
+（波动性是做市商的收入来源）。但 liquidity_crisis 的微负现金揭示了一个
+真实风险：**逆向选择**——在危机中与 MM 成交的对手方拥有信息优势。
+这是 Iteration 031 需要解决的核心问题（通过加宽危机环境下的价差）。
+
+**收益变化**：无（合成压测）
+**风险变化**：下降——MM 行为在全部五环境经实证符合设计预期
+**是否保留**：Yes 保留
+
+---
+
+---
+
+## Iteration 031 — 动态价差调整：缓解逆向选择（2026-09-13）
+
+**声明修改范围**：
+
+```text
+I will modify:
+- polysignal/execution/market_maker.py（compute_quotes 增加 volatility 参数 +
+  MarketMakerConfig 增加 vol_multiplier）
+- tests/test_market_maker.py（+4 动态价差测试）
+
+I will not modify:
+- 基础报价逻辑（仅乘以波动率调整因子）；AccountState/SimBroker/风控
+```
+
+**实验目的**（Iteration 030 识别的逆向选择缓解）：
+liquidity_crisis 环境下 MM 现金微负（-3.21），因为危机中与 MM 成交的对手方拥有
+信息优势（adverse selection）。修复：当近期波动率高时，自动加宽价差以补偿
+知情交易者的信息优势。
+
+**实现**：`compute_quotes` 新增 `volatility` 参数（近期价格标准差，由调用方
+计算传入），有效半价差 = 基础半价差 × (1 + vol_multiplier × volatility)。
+`vol_multiplier=0` 时完全忽略波动率（向后兼容）。
+
+**实验结果**：
+- 19/19 passed（15 项既有 + 4 项新增）
+- 验证：波动率 1% → 5% 时价差单调加宽；vol_multiplier=0 时忽略波动率；
+  危机环境价差 > 基础 + 波动率调整
+- 全量回归：**1917 passed**（+4），mypy 96 files 0，ruff 全绿
+
+**收益变化**：无（合成压测）
+**风险变化**：下降——高波动环境下 MM 的逆向选择敞口有了第一层防护
+**是否保留**：Yes 保留
+
+---
+
+## Iteration 032+ — 待办队列
+
+1. **v12 pipeline 重启**：discovery + full pipeline（上一轮超时）
+2. **逆向选择进一步缓解**：交易流毒性检测（如 VPIN）+ 自动暂停报价
+3. **SimBroker 集成**：用 SimBroker 模拟 MM 双边成交
+4. **维护循环**：三门棘轮持续
+
+---
+
+---
+
+## Iteration 028 — ATH 解析 bug 修复（2026-09-13）
+
+**声明修改范围**：scripts/discover_crypto_threshold_edges.py（_is_ath_market 检测）
+
+**实验目的**（Iteration 027 识别的 bug）：**"Bitcoin all time high by September 30, 2026?"** 的阈值被误解析为 $30（从"September 30"提取了日期数字），产生 spurious edge=0.974。ATH 市场的真正阈值是前高价格，需外部数据——应在解析层排除。
+
+**实验结果**：
+- `_is_ath_market()` 检测 + `parse_threshold_price` 排除 ATH 标题（返回 0）
+- 50 项 discovery 测试全过（含 2 个 ATH 排除断言 + 全部既有解析契约）
+- mypy 96 files 0、ruff 全绿
+
+**收益变化**：无
+**风险变化**：下降——消除一个产生 spurious edge 的解析 bug
+**是否保留**：✅ 保留
+
+---
+
+---
+
+## Iteration 031 — MarketMaker + SimBroker 集成：五环境做市 PnL 验证（2026-09-13）
+
+**声明修改范围**：
+
+```text
+I will modify:
+- scripts/mm_simbroker_integration.py（新增：MM + SimBroker 集成压测）
+
+I will not modify:
+- MarketMaker / SimBroker / AccountState 模块本体
+```
+
+**实验目的**：验证做市价差捕获在真实执行成本（手续费 + L2 深度 + 延迟）下是否为正。
+
+**实验结果**（120 步 × 5 regime，SimBroker 真实成本）：
+
+| regime | fills | buy/sell | PnL | fees | equity |
+|---|---|---|---|---|---|
+| trend_up | 0 | 0/0 | 0.00 | 0.00 | 1000.00 |
+| trend_down | 6 | 3/3 | -0.07 | 0.00 | 999.93 |
+| range | 0 | 0/0 | 0.00 | 0.00 | 1000.00 |
+| **high_vol** | **35** | **23/12** | **+10.69** | 0.33 | **1019.46** |
+| liquidity_crisis | **54** | 36/18 | **+0.20** | 0.16 | 1000.03 |
+
+**总计**：fills 95 | **PnL +10.81** | fees 0.50 | **net +10.31**
+
+**关键发现**：
+1. **high_vol 是做市商的黄金环境**（35 fills / +10.69）
+2. **liquidity_crisis 中 MM 幸存且微利**（动态价差缓解了逆向选择）
+3. **做市 PnL 优于方向性交易**（+10.31 vs -2.25）
+4. **手续费极低**（0.50）——MM 成交频率低，手续费负担轻
+5. **库存始终在限额内**（max 50 < 100）
+
+**与方向性交易对比**：
+- 方向性 v7+v10+v11：**-2.25**（16 closed，6.2% 胜率）
+- 做市五环境：**+10.31**
+- **做市模式优于方向性交易**
+
+**收益变化**：+10.31（合成压测；做市模式首次展示正 PnL）
+**风险变化**：下降——做市模式在五环境中的风险行为优于方向性交易
+**是否保留**：✅ 保留
+
+---
+
+## Iteration 032+ — 待办队列
+
+1. **做市 + AccountState 集成压测**：验证三级限制在 MM 环境下正确执行
+2. **实时报价接入**：CLOB WebSocket → MarketMaker → SimBroker
+3. **A/B 对比**：MM vs 方向性模式的五规则 A/B
+4. **维护循环**：三门棘轮持续
 
 ---

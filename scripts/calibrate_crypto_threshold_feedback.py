@@ -15,7 +15,7 @@ import argparse
 import csv
 import json
 import math
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -104,7 +104,7 @@ def calibrate(closed: list[dict[str, Any]]) -> dict[str, Any]:
 
     return {
         "schema_version": "crypto_threshold_feedback_calibration_v1",
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "edge_types_analyzed": [EDGE_TYPE],
         "edge_type_performance": {
             EDGE_TYPE: {

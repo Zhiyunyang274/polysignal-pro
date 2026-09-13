@@ -67,6 +67,14 @@ Iteration log: docs/iteration_log.md (Iterations 000-023 complete, in order)
            held under external pressure); retry after access restoration
   026      crypto_price_threshold_v1 QUARANTINED (16 closed across 6 clusters,
            1 win / 6.2% / all-negative returns; gate: 5 hard-fail reasons)
+  027      stale_price_lag reserved (0 near-barrier markets, untestable)
+  029      ADR-030 market-making shift; MarketMaker + InventoryTracker built
+           (15 tests); v12 pipeline running (discovery -> validate -> merge)
+  030      MM five-regime stress: all invariants pass; high_vol = most fills
+           (77) + highest spread capture ($4.06); liquidity_crisis = best
+           balance (45/45) but adverse selection risk identified
+  031      dynamic spread widening (vol_multiplier x volatility): mitigates
+           adverse selection in crisis regimes; 19 tests / 1917 passed
   023      ADR-027 multi-source klines (Binance primary + Coinbase fallback, user
            approved): v10 discovery 45/46 verified_full_coverage, cohort created
            (4 positions / 2 clusters, entry 13:14:00Z); Phase B poll scheduled
