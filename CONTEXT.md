@@ -75,6 +75,8 @@ Iteration log: docs/iteration_log.md (Iterations 000-023 complete, in order)
            balance (45/45) but adverse selection risk identified
   031      dynamic spread widening (vol_multiplier x volatility): mitigates
            adverse selection in crisis regimes; 19 tests / 1917 passed
+  032      MM + AccountState 3-tier integration verified (market/strategy
+           exposure + consecutive losses fire correctly in MM context)
   023      ADR-027 multi-source klines (Binance primary + Coinbase fallback, user
            approved): v10 discovery 45/46 verified_full_coverage, cohort created
            (4 positions / 2 clusters, entry 13:14:00Z); Phase B poll scheduled

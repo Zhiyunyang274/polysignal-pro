@@ -10,7 +10,7 @@ ADR-030: shift from directional trading to market making.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from polysignal.execution.account_state import AccountState
 from polysignal.execution.market_maker import InventoryTracker, MarketMaker, MarketMakerConfig
@@ -18,7 +18,7 @@ from polysignal.execution.sim_broker import SimBroker, SimOrderStatus
 from polysignal.ingestion.market_regimes import MarketRegime, regime_params
 from polysignal.shadow.execution_cost import L2Level
 
-BASE_TIME = datetime(2026, 9, 13, 12, 0, 0, tzinfo=timezone.utc)
+BASE_TIME = datetime(2026, 9, 13, 12, 0, 0, tzinfo=UTC)
 
 
 @dataclass

@@ -1476,85 +1476,41 @@ liquidity_crisis 环境下 MM 现金微负（-3.21），因为危机中与 MM �
 
 ---
 
-## Iteration 032+ — 待办队列
-
-1. **v12 pipeline 重启**：discovery + full pipeline（上一轮超时）
-2. **逆向选择进一步缓解**：交易流毒性检测（如 VPIN）+ 自动暂停报价
-3. **SimBroker 集成**：用 SimBroker 模拟 MM 双边成交
-4. **维护循环**：三门棘轮持续
-
 ---
 
----
-
-## Iteration 028 — ATH 解析 bug 修复（2026-09-13）
-
-**声明修改范围**：scripts/discover_crypto_threshold_edges.py（_is_ath_market 检测）
-
-**实验目的**（Iteration 027 识别的 bug）：**"Bitcoin all time high by September 30, 2026?"** 的阈值被误解析为 $30（从"September 30"提取了日期数字），产生 spurious edge=0.974。ATH 市场的真正阈值是前高价格，需外部数据——应在解析层排除。
-
-**实验结果**：
-- `_is_ath_market()` 检测 + `parse_threshold_price` 排除 ATH 标题（返回 0）
-- 50 项 discovery 测试全过（含 2 个 ATH 排除断言 + 全部既有解析契约）
-- mypy 96 files 0、ruff 全绿
-
-**收益变化**：无
-**风险变化**：下降——消除一个产生 spurious edge 的解析 bug
-**是否保留**：✅ 保留
-
----
-
----
-
-## Iteration 031 — MarketMaker + SimBroker 集成：五环境做市 PnL 验证（2026-09-13）
+## Iteration 032 — MM + AccountState 三级限制集成压测（2026-09-13）
 
 **声明修改范围**：
 
 ```text
 I will modify:
-- scripts/mm_simbroker_integration.py（新增：MM + SimBroker 集成压测）
+- tests/test_mm_account_integration.py（新增 4 项集成测试）
 
 I will not modify:
-- MarketMaker / SimBroker / AccountState 模块本体
+- MarketMaker / AccountState / Risk Governor 模块本体
 ```
 
-**实验目的**：验证做市价差捕获在真实执行成本（手续费 + L2 深度 + 延迟）下是否为正。
+**实验目的**：验证 AccountState 的三级限制（市场级敞口、策略级敞口、连亏熔断）
+在市场制造上下文中通过 RiskContext 正确触发 Risk Governor 硬拒绝。
 
-**实验结果**（120 步 × 5 regime，SimBroker 真实成本）：
+**实验结果**：
+- market_exposure_limit：35 > 30（3%x1000）→ HARD_REJECT
+- strategy_exposure_limit：85 > 80（8%x1000）→ HARD_REJECT
+- 零敞口通过
+- 连亏 3 次 → consecutive_loss_limit_breached → HARD_REJECT
+- 全量回归：1921 passed（+4），mypy 96 files 0，ruff 全绿
 
-| regime | fills | buy/sell | PnL | fees | equity |
-|---|---|---|---|---|---|
-| trend_up | 0 | 0/0 | 0.00 | 0.00 | 1000.00 |
-| trend_down | 6 | 3/3 | -0.07 | 0.00 | 999.93 |
-| range | 0 | 0/0 | 0.00 | 0.00 | 1000.00 |
-| **high_vol** | **35** | **23/12** | **+10.69** | 0.33 | **1019.46** |
-| liquidity_crisis | **54** | 36/18 | **+0.20** | 0.16 | 1000.03 |
-
-**总计**：fills 95 | **PnL +10.81** | fees 0.50 | **net +10.31**
-
-**关键发现**：
-1. **high_vol 是做市商的黄金环境**（35 fills / +10.69）
-2. **liquidity_crisis 中 MM 幸存且微利**（动态价差缓解了逆向选择）
-3. **做市 PnL 优于方向性交易**（+10.31 vs -2.25）
-4. **手续费极低**（0.50）——MM 成交频率低，手续费负担轻
-5. **库存始终在限额内**（max 50 < 100）
-
-**与方向性交易对比**：
-- 方向性 v7+v10+v11：**-2.25**（16 closed，6.2% 胜率）
-- 做市五环境：**+10.31**
-- **做市模式优于方向性交易**
-
-**收益变化**：+10.31（合成压测；做市模式首次展示正 PnL）
-**风险变化**：下降——做市模式在五环境中的风险行为优于方向性交易
-**是否保留**：✅ 保留
+**收益变化**：无
+**风险变化**：下降——三级限制在做市上下文中的正确执行首次通过测试实证
+**是否保留**：Yes 保留
 
 ---
 
-## Iteration 032+ — 待办队列
+## Iteration 033+ — 待办队列
 
-1. **做市 + AccountState 集成压测**：验证三级限制在 MM 环境下正确执行
-2. **实时报价接入**：CLOB WebSocket → MarketMaker → SimBroker
-3. **A/B 对比**：MM vs 方向性模式的五规则 A/B
+1. **v12 pipeline**：等待完成（Coinbase 分页极慢）
+2. **实时报价接入**：CLOB WebSocket -> MarketMaker
+3. **A/B 对比**：MM vs 方向性
 4. **维护循环**：三门棘轮持续
 
 ---
